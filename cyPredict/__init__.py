@@ -1804,8 +1804,7 @@ class cyPredict:
 
             signal, extension_periods = self.rebuilt_signal_zeros(signal = temp_circle_signal,
                                                start_rebuilt_signal_index = start_rebuilt_signal_index,
-                                               data = original_data,
-                                               debug = False)      
+                                               data = original_data)      
 
             if(extension_periods > 0):
                 original_data = self.datetime_dateset_extend(original_data, extension_periods)
@@ -1841,8 +1840,7 @@ class cyPredict:
          # Composite dominant sin cycles signal
         signal, extension_periods = self.rebuilt_signal_zeros(signal = composite_dominant_cycle_signal,
                                            start_rebuilt_signal_index = start_rebuilt_signal_index,
-                                           data = original_data,
-                                           debug = False)
+                                           data = original_data)
 
         if(extension_periods > 0):
             original_data = self.datetime_dateset_extend(original_data, extension_periods)
@@ -3287,15 +3285,15 @@ class cyPredict:
             min_datetimes = x[min_indices]
             
             # Filtra i 2 massimi/minimi successivi e 1 precedente
-            def pick_extrema_near_target(indices, datetimes, target_index, count_after=2, count_before=1):
+            def pick_extrema_near_target(datetimes, target_index, count_after=2, count_before=1):
                 target_dt = x[target_index]
                 dt_series = pd.Series(datetimes)
                 after = dt_series[dt_series > target_dt].sort_values().head(count_after)
                 before = dt_series[dt_series <= target_dt].sort_values(ascending=False).head(count_before)
                 return before.tolist() + after.tolist()
             
-            relevant_max_dt = pick_extrema_near_target(max_indices, max_datetimes, index_of_max_time_for_cd)
-            relevant_min_dt = pick_extrema_near_target(min_indices, min_datetimes, index_of_max_time_for_cd)
+            relevant_max_dt = pick_extrema_near_target(max_datetimes, index_of_max_time_for_cd)
+            relevant_min_dt = pick_extrema_near_target(min_datetimes, index_of_max_time_for_cd)
             
             # Annotazioni
             used_points = []
@@ -3634,7 +3632,7 @@ class cyPredict:
         return data, indicator_parameters
 
 
-    def rebuilt_signal_zeros(self, signal, start_rebuilt_signal_index, data, debug = False):
+    def rebuilt_signal_zeros(self, signal, start_rebuilt_signal_index, data):
 
         total_length = len(data)
         len_before = len(signal)
@@ -6146,6 +6144,4 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         residual = signal - trend
 
         return trend, residual
-
-
 

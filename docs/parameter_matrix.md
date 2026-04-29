@@ -10,6 +10,7 @@ Status labels:
 - `legacy`: retained for older callers or notebooks.
 - `unused-candidate`: not observed in direct body usage during initial static scan; requires confirmation.
 - `remove-approved`: may be removed only after notebook scan and golden tests.
+- `removed`: removed after local call-site verification and test coverage.
 
 ## Conditional Parameter Rules
 
@@ -39,7 +40,7 @@ These candidates came from a static scan of function bodies and must be verified
 | `indict_MACD_SGMACD` | `signals_results` | unused-candidate | Check whether function was meant to mutate passed dataframe. |
 | `indict_RSI_SG_smooth_RSI` | `signals_results` | unused-candidate | Check whether function was meant to mutate passed dataframe. |
 | `indict_centered_average_deltas` | `signals_results` | unused-candidate | Check whether function was meant to mutate passed dataframe. |
-| `rebuilt_signal_zeros` | `debug` | unused-candidate | Safe candidate after test; may become logging flag. |
+| `rebuilt_signal_zeros` | `debug` | removed | Removed after verifying only internal calls and running QQQ golden coverage. |
 | `CDC_vs_detrended_correlation` | `data` | unused-candidate | High-risk because public-ish function may rely on `self.data`. |
 | `CDC_vs_detrended_correlation` | `lowess_k` | unused-candidate | Check if missing routing is a bug before removing. |
 | `CDC_vs_detrended_correlation` | `best_fit_start_back_period` | unused-candidate | Check whether should be passed to `multiperiod_analysis`. |
@@ -60,3 +61,9 @@ These candidates came from a static scan of function bodies and must be verified
 4. Remove parameter only in a dedicated commit.
 5. If public, keep a legacy wrapper or warning phase before final removal.
 
+## Completed Removals
+
+| Function | Parameter | Commit scope | Verification |
+| --- | --- | --- | --- |
+| nested `pick_extrema_near_target` inside `multiperiod_analysis` | `indices` | Internal helper only; call sites updated in the same block. | Rapid pytest suite and optional QQQ golden scenario. |
+| `rebuilt_signal_zeros` | `debug` | Internal calls updated; the flag was never read. | Rapid pytest suite and optional QQQ golden scenario. |
