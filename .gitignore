@@ -1,0 +1,38 @@
+# Python cache and local runtime artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Native extension build products
+*.obj
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.tlog
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Local logs and generated outputs
+logs/
+outputs/
+*.log
+*.jsonl
+
+# Local environment
+.env
+.venv/
+venv/
+

@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cypredict"
+version = "0.1.0"
+description = "Dominant-cycle analysis and projection utilities for financial time series."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Federico" }
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Financial and Insurance Industry",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Scientific/Engineering :: Information Analysis"
+]
+dependencies = [
+  "deap",
+  "hyperopt",
+  "imbalanced-learn",
+  "ipython",
+  "matplotlib",
+  "numpy",
+  "pandas",
+  "plotly",
+  "pytz",
+  "scikit-learn",
+  "scipy",
+  "statsmodels",
+  "tabulate",
+  "yfinance"
+]
+
+[project.optional-dependencies]
+native = [
+  "nlopt"
+]
+dev = [
+  "pytest"
+]
+
+[tool.setuptools]
+packages = ["cyPredict"]
+
