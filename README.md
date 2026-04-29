@@ -8,6 +8,7 @@ The code is currently being consolidated. The first rule of the cleanup is to pr
 
 - Main implementation: `cyPredict/__init__.py`
 - Planned cleanup: `sviluppi_programmati/cypredict_cleanup_refactor_plan.md`
+- Native dependency notes: `docs/native_dependencies.md`
 - Native/custom dependencies currently expected on the Python path: `goertzel`, `cyfitness`, `cyGAopt`, `cyGAoptMultiCore`
 - Research notebooks and usage examples currently live outside this repository under `D:\Dropbox\TRADING\STUDIES DEVELOPMENT\CYCLES ANALYSIS`
 

@@ -5,6 +5,22 @@ from enum import Enum
 from typing import Type
 import sys
 import traceback
+from pathlib import Path
+
+_NATIVE_MODULE_DIRS = [
+    Path(__file__).resolve().parents[1] / "native" / "goertzel",
+    Path(__file__).resolve().parents[1] / "native" / "cyfitness",
+    Path(__file__).resolve().parents[1] / "native" / "cygaopt",
+    Path(__file__).resolve().parents[1] / "native" / "cygaopt_multicore",
+    Path(__file__).resolve().parents[1] / "native" / "genetic_optimization_legacy",
+]
+
+for _native_module_dir in _NATIVE_MODULE_DIRS:
+    if _native_module_dir.exists():
+        _native_module_path = str(_native_module_dir)
+        if _native_module_path not in sys.path:
+            sys.path.insert(0, _native_module_path)
+
 # import goertzel # C dll
 from goertzel import goertzel_general_shortened as goertzel_general_shortened
 from goertzel import goertzel_DFT as goertzel_DFT
@@ -6130,7 +6146,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         residual = signal - trend
 
         return trend, residual
-
 
 
 
