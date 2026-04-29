@@ -9,11 +9,12 @@ Data: 2026-04-29
 - Fase 3.1 completata in questo ciclo di lavoro: `core/data.py` contiene `DataMixin` e `download_finance_data`.
 - Fase 3.2 completata in questo ciclo di lavoro: `core/dates.py` contiene `DatesMixin`, `find_next_valid_datetime` e `datetime_dateset_extend`.
 - Fase 4 completata in questo ciclo di lavoro: `core/detrending.py` contiene `DetrendingMixin`, `hp_filter`, `jh_filter`, `linear_detrend` e `detrend_lowess`.
-- La classe pubblica resta `cyPredict.cyPredict` e ora eredita da `StateMixin`, `DataMixin`, `DatesMixin` e `DetrendingMixin`.
+- Fase 5 parziale completata in questo ciclo di lavoro: `core/spectral.py` contiene `SpectralMixin` e `get_bartels_score`.
+- La classe pubblica resta `cyPredict.cyPredict` e ora eredita da `StateMixin`, `DataMixin`, `DatesMixin`, `DetrendingMixin` e `SpectralMixin`.
 - Gli import legacy sono stati mantenuti prima dell'import dei mixin: questa regola e' importante per evitare cambiamenti indiretti nell'ordine di inizializzazione delle librerie scientifiche/native. Unica eccezione verificata: l'import `yfinance` e' stato rimosso dal monolite perche' ora e' locale a `core/data.py` e il golden QQQ resta stabile.
 - Gli import calendario storici (`pytz`, `timezone`, `USFederalHolidayCalendar`, `BDay`, `timedelta`, `date`) restano temporaneamente nel monolite anche se non sono referenziati direttamente: la loro rimozione ha prodotto drift golden, quindi vanno trattati solo in un commit dedicato con analisi dell'ordine di import.
 - Gli import nuovi pesanti non presenti nel percorso golden, come `LinearRegression` usato da `jh_filter`, vanno preferibilmente caricati in modo lazy dentro il metodo; l'import top-level ha prodotto drift golden.
-- Prossima fase consigliata: estrarre analisi spettrale di supporto (`get_bartels_score` e helper Goertzel) prima di affrontare `analyze_and_plot`, sempre con commit separati e golden QQQ dopo ogni spostamento.
+- Prossima fase consigliata: estrarre helper Goertzel e ranking spettrale solo se isolabili; altrimenti spostare `analyze_and_plot` intero in un mixin dedicato, sempre con commit separati e golden QQQ dopo ogni spostamento.
 
 ## Obiettivo
 

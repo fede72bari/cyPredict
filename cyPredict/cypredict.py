@@ -105,11 +105,12 @@ from pandas.tseries.offsets import BDay
 from .core.data import DataMixin
 from .core.dates import DatesMixin
 from .core.detrending import DetrendingMixin
+from .core.spectral import SpectralMixin
 from .core.state import StateMixin
 
 
 
-class cyPredict(StateMixin, DataMixin, DatesMixin, DetrendingMixin):
+class cyPredict(StateMixin, DataMixin, DatesMixin, DetrendingMixin, SpectralMixin):
     """Cycle-analysis engine for financial time series.
 
     The class downloads or loads OHLCV data, estimates dominant periods with
@@ -121,64 +122,6 @@ class cyPredict(StateMixin, DataMixin, DatesMixin, DetrendingMixin):
     arguments are meaningful only for selected workflows; those mode-specific
     relationships are documented on the methods where they are consumed.
     """
-
-    def get_bartels_score(self, dataset, cycle_length, max_segments):
-        bartelsscore = 0
-        segmentspassed = 0
-
-        datacounter = 0
-        A = 0
-        B = 0
-        SUM_A = 0
-        SUM_B = 0
-        SUM_A2B2 = 0
-        bval = 0
-        SI = 0
-        CO = 0
-        bogenmass = 0
-
-        bval = 360 / cycle_length
-
-        for x in range(len(dataset)):
-            bogenmass = (bval * (x + 1)) / 180 * math.pi
-
-            SI = math.sin(bogenmass) * dataset[x]
-            CO = math.cos(bogenmass) * dataset[x]
-
-            A += SI
-            B += CO
-
-            datacounter += 1
-
-            if datacounter == int(cycle_length) and segmentspassed < int(max_segments):
-                SUM_A += A
-                SUM_B += B
-                SUM_A2B2 += A ** 2 + B ** 2
-
-                segmentspassed += 1
-                datacounter = 0
-                A = 0
-                B = 0
-
-        if segmentspassed == 0:
-            return_bartels = 0
-            return_segments = 0
-        else:
-            SUM_A_Average = SUM_A / segmentspassed
-            SUM_B_Average = SUM_B / segmentspassed
-            Amplitude = math.sqrt(SUM_A_Average ** 2 + SUM_B_Average ** 2)
-
-            SUM_A2B2_Average = SUM_A2B2 / segmentspassed
-            Amplitude_A2B2 = math.sqrt(SUM_A2B2_Average)
-
-            a1 = Amplitude_A2B2 / math.sqrt(segmentspassed)
-            b1 = Amplitude / a1
-
-            bartelsscore = 1 / math.exp(b1 ** 2)
-
-        return bartelsscore, segmentspassed
-
-
 
     def analyze_and_plot(self,
                          data = None,
