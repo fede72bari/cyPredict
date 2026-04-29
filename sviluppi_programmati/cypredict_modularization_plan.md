@@ -2,6 +2,14 @@
 
 Data: 2026-04-29
 
+## Stato Attuale
+
+- Fase 1 completata: `cyPredict/__init__.py` e' un compatibility layer e la classe legacy vive in `cyPredict/cypredict.py`.
+- Fase 2 completata in questo ciclo di lavoro: `core/state.py` contiene `StateMixin`, enum legacy, `__init__`, `track_time` e `set_start_time`.
+- La classe pubblica resta `cyPredict.cyPredict` e ora eredita da `StateMixin`.
+- Gli import legacy sono stati mantenuti prima dell'import dei mixin: questa regola e' importante per evitare cambiamenti indiretti nell'ordine di inizializzazione delle librerie scientifiche/native.
+- Prossima fase consigliata: estrarre `download_finance_data` in `core/data.py`, poi le utility datetime in `core/dates.py`, sempre con commit separati e golden QQQ dopo ogni spostamento.
+
 ## Obiettivo
 
 Suddividere progressivamente il file monolitico `cyPredict/__init__.py` in moduli strutturati, mantenendo invariata la logica di calcolo e lasciando stabile l'API legacy finche' i notebook applicativi e GammaSignalForge non saranno migrati alla nuova struttura.
