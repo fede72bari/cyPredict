@@ -18,7 +18,7 @@ This document defines the first baseline tests needed before calculation cleanup
   - scenario: `tests/golden/scenarios/qqq_eod_analyze_and_plot.json`
   - baseline: `tests/golden/baselines/qqq_eod_analyze_and_plot.json`
 
-This first baseline intentionally uses Yahoo EOD data, following the notebook workflow and project-owner direction. Because the data is downloaded from a provider, future recaptures should treat provider/library changes as a possible source of baseline drift even though the date range is historical and closed.
+This first baseline intentionally uses Yahoo EOD data, following the notebook workflow and project-owner direction. Because the data is downloaded from a provider, future recaptures should treat provider/library changes as a possible source of baseline drift even though the date range is historical and closed. The optional golden comparison test therefore uses numeric tolerances for this scenario instead of requiring exact full-data hashes.
 
 ## Scenario 2 - Intraday Yahoo Data
 
