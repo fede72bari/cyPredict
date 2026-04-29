@@ -103,11 +103,12 @@ from pandas.tseries.offsets import BDay
 
 
 from .core.data import DataMixin
+from .core.dates import DatesMixin
 from .core.state import StateMixin
 
 
 
-class cyPredict(StateMixin, DataMixin):
+class cyPredict(StateMixin, DataMixin, DatesMixin):
     """Cycle-analysis engine for financial time series.
 
     The class downloads or loads OHLCV data, estimates dominant periods with
@@ -289,179 +290,6 @@ class cyPredict(StateMixin, DataMixin):
         detrended_y = y[h:] - cyclical_component
 
         return detrended_y
-
-
-
-    def find_next_valid_datetime(self, current_datetime, friday_times, saturday_times, sunday_times, workday_times, timezone=None):
-        days = 0
-
-        while True:
-            temp_date = current_datetime + pd.DateOffset(days=days)
-
-            if temp_date.weekday() == 4 and len(friday_times) > 0:
-                day_times = friday_times
-            elif temp_date.weekday() == 5 and len(saturday_times) > 0:
-                day_times = saturday_times
-            elif temp_date.weekday() == 6 and len(sunday_times) > 0:
-                day_times = sunday_times
-            elif len(workday_times) > 0:
-                day_times = workday_times
-            else:
-                day_times = []
-
-            if len(day_times) > 0:
-                if days == 0:
-                    # Giorno corrente: cerca orario successivo valido
-                    current_time_index = np.searchsorted(day_times, current_datetime.time(), side='right')
-                    if current_time_index < len(day_times):
-                        next_time = day_times[current_time_index]
-                        new_datetime = pd.Timestamp.combine(temp_date, next_time)
-                        if timezone:
-                            new_datetime = new_datetime.tz_localize(timezone)
-                        return new_datetime
-                    else:
-                        # Nessun orario utile oggi: passa al giorno successivo
-                        days += 1
-                        continue
-                else:
-                    # Giorno successivo: usa il primo orario disponibile
-                    next_time = day_times[0]
-                    new_datetime = pd.Timestamp.combine(temp_date, next_time)
-                    if timezone:
-                        new_datetime = new_datetime.tz_localize(timezone)
-                    return new_datetime
-
-            days += 1
-
-
-
-    def datetime_dateset_extend(self, df, extension_periods=10, timeframe  = None):
-
-        timezone = df.index.tz
-        today = df.index.max()  # ✅ Mantiene anche l'orario
-
-        if timeframe is None:
-            # Stima grezza del timeframe medio (in secondi)
-            deltas = df.index.to_series().diff().dropna()
-            median_delta = deltas.median()
-
-            if median_delta >= pd.Timedelta(days=1):
-                timeframe = '1d'
-            else:
-                timeframe = 'intraday'  # Assume tutto < 1d come intraday
-                
-                
-            if timeframe in ['1d', '1h', '1wk', '1mo']:
-                print("DAILY TIMEFRAME DETECTED")
-
-                # Determina quali giorni della settimana sono presenti storicamente
-                historical_weekdays = set(df.index.weekday)
-
-                last_date = df.index.max().normalize()
-                new_indexes = []
-
-                next_date = last_date + pd.Timedelta(days=1)
-
-                # Continua finché hai aggiunto tutte le extension_periods necessarie
-                while len(new_indexes) < extension_periods:
-                    # Se il giorno della settimana della prossima data è presente nello storico, aggiungila
-                    if next_date.weekday() in historical_weekdays:
-                        new_indexes.append(next_date)
-
-                    # Passa al giorno successivo
-                    next_date += pd.Timedelta(days=1)
-
-                # Gestione timezone se necessario
-                if timezone is not None:
-                    new_indexes = [pd.Timestamp(d).tz_localize(timezone) for d in new_indexes]
-
-                
-            else:
-                # Prendi TUTTI i datetime dell'ultimo venerdì disponibile
-                print("INTRADAY TIMEFRAME DETECTED")
-
-                today = df.index.max().date()
-
-                # Prendi TUTTI i datetime dell'ultimo venerdì disponibile (prima di oggi)
-                last_friday = (
-                    df.loc[(df.index.date < today) & (df.index.weekday == 4)]
-                    .index.to_series()
-                    .dt.date
-                    .max()
-                )
-                if pd.notna(last_friday):
-                    friday_times = df.loc[df.index.date == last_friday].index.time
-                else:
-                    friday_times = []
-
-                # Prendi TUTTI i datetime dell'ultimo sabato disponibile (prima di oggi)
-                last_saturday = (
-                    df.loc[(df.index.date < today) & (df.index.weekday == 5)]
-                    .index.to_series()
-                    .dt.date
-                    .max()
-                )
-                if pd.notna(last_saturday):
-                    saturday_times = df.loc[df.index.date == last_saturday].index.time
-                else:
-                    saturday_times = []
-
-                # Prendi TUTTI i datetime dell'ultima domenica disponibile (prima di oggi)
-                last_sunday = (
-                    df.loc[(df.index.date < today) & (df.index.weekday == 6)]
-                    .index.to_series()
-                    .dt.date
-                    .max()
-                )
-                if pd.notna(last_sunday):
-                    sunday_times = df.loc[df.index.date == last_sunday].index.time
-                else:
-                    sunday_times = []
-
-                # Prendi TUTTI i datetime dell'ultimo giorno lavorativo disponibile (prima di oggi, esclusi venerdì e domenica)
-                last_workday = (
-                    df.loc[(df.index.date < today) & (df.index.weekday != 4) & (df.index.weekday != 6)]
-                    .index.to_series()
-                    .dt.date
-                    .max()
-                )
-                if pd.notna(last_workday):
-                    workday_times = df.loc[df.index.date == last_workday].index.time
-                else:
-                    workday_times = []
-                    
-                    
-                samples_per_friday = len(friday_times)
-                samples_per_sunday = len(sunday_times)
-                samples_per_workday = len(workday_times)
-
-                # Ricava l’ultimo timestamp reale
-                last_real_timestamp = df.index.max()
-
-                # Ricava tutti i datetime dei giorni settimanali campione
-                new_indexes = []
-                new_datetime = self.find_next_valid_datetime(
-                    last_real_timestamp, friday_times, saturday_times, sunday_times, workday_times, timezone
-                )
-
-                for _ in range(extension_periods):
-                    new_indexes.append(new_datetime)
-                    new_datetime = self.find_next_valid_datetime(
-                        new_datetime, friday_times, saturday_times, sunday_times, workday_times, timezone
-                    )
-                    
-
-        len_before = len(df)
-
-        # Crea solo nuove righe (non modifica df esistente)
-        new_rows = pd.DataFrame(np.nan, index=new_indexes, columns=df.columns)
-        df = pd.concat([df, new_rows])
-        
-        len_after = len(df)
-        
-        df.to_csv('C:\\Users\\Federico\\Downloads\\df new dates.csv')
-
-        return df
 
 
 
