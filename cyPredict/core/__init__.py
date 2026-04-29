@@ -4,6 +4,7 @@ from .data import DataMixin
 from .dates import DatesMixin
 from .detrending import DetrendingMixin
 from .diagnostics import DiagnosticsMixin
+from .extrema import ExtremaMixin
 from .indicators import IndicatorsMixin
 from .optimization import OptimizationMixin
 from .reconstruction import ReconstructionMixin
@@ -16,6 +17,7 @@ __all__ = [
     "DatesMixin",
     "DetrendingMixin",
     "DiagnosticsMixin",
+    "ExtremaMixin",
     "IndicatorsMixin",
     "OptimizationMixin",
     "ReconstructionMixin",
