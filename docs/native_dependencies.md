@@ -2,7 +2,7 @@
 
 Baseline inspected: `a96ec0690052bca1fa36f80064ec47997de0dc8b`
 
-`cyPredict/__init__.py` currently imports several modules that were historically resolved by notebooks adding the sibling library root to `sys.path`:
+`cyPredict/cypredict.py` currently imports several modules that were historically resolved by notebooks adding the sibling library root to `sys.path`:
 
 ```python
 sys.path.append(r"D:\Dropbox\TRADING\TRADING PROPERTY LIBRARIES")
@@ -43,4 +43,4 @@ Build artifacts such as `.pyd`, `.obj`, `.lib`, CMake output and Visual Studio o
 
 Use `scripts/build_native.ps1` from the repository root to build with the Anaconda `cyenv` interpreter.
 
-`cyPredict/__init__.py` now prepends these `native/*` folders to `sys.path` before importing the custom modules. This makes locally built or locally copied `.pyd` files discoverable without requiring the notebook working directory.
+`cyPredict/cypredict.py` now prepends these `native/*` folders to `sys.path` before importing the custom modules. `cyPredict/__init__.py` remains a compatibility re-export for legacy imports. This makes locally built or locally copied `.pyd` files discoverable without requiring the notebook working directory.

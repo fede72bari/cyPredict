@@ -6,7 +6,8 @@ The code is currently being consolidated. The first rule of the cleanup is to pr
 
 ## Current Status
 
-- Main implementation: `cyPredict/__init__.py`
+- Legacy package interface: `cyPredict/__init__.py`
+- Current implementation module: `cyPredict/cypredict.py`
 - Planned cleanup: `sviluppi_programmati/cypredict_cleanup_refactor_plan.md`
 - Native dependency notes: `docs/native_dependencies.md`
 - Native/custom dependencies currently expected on the Python path: `goertzel`, `cyfitness`, `cyGAopt`, `cyGAoptMultiCore`

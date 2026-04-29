@@ -16,7 +16,7 @@ La regola operativa principale e':
 
 Repository attuale:
 
-- `cyPredict/__init__.py`: modulo monolitico con la classe `cyPredict`, circa 6000 righe.
+- `cyPredict/cypredict.py`: modulo monolitico con la classe `cyPredict`, separato dal re-export legacy in `cyPredict/__init__.py`.
 - `README.md`: vuoto.
 - `.gitingore`: file vuoto e con nome errato; dovrebbe essere `.gitignore`.
 - `examples/`: presente ma non popolata con esempi eseguibili nella ricognizione iniziale.

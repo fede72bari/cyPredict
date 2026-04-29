@@ -189,6 +189,7 @@ Comandi:
 
 ```powershell
 & 'C:\Users\Federico\anaconda3\envs\cyenv\python.exe' -m py_compile cyPredict\__init__.py
+& 'C:\Users\Federico\anaconda3\envs\cyenv\python.exe' -m py_compile cyPredict\cypredict.py
 & 'C:\Users\Federico\anaconda3\envs\cyenv\python.exe' -m pytest
 $env:CYPREDICT_RUN_GOLDEN='1'; & 'C:\Users\Federico\anaconda3\envs\cyenv\python.exe' -m pytest tests\test_golden_cypredict.py -q
 ```
@@ -433,6 +434,7 @@ Minimo:
 
 ```powershell
 & 'C:\Users\Federico\anaconda3\envs\cyenv\python.exe' -m py_compile cyPredict\__init__.py
+& 'C:\Users\Federico\anaconda3\envs\cyenv\python.exe' -m py_compile cyPredict\cypredict.py
 & 'C:\Users\Federico\anaconda3\envs\cyenv\python.exe' -m pytest
 ```
 
