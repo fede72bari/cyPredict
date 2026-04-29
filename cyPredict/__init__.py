@@ -129,6 +129,17 @@ from pandas.tseries.offsets import BDay
 
 
 class cyPredict:
+    """Cycle-analysis engine for financial time series.
+
+    The class downloads or loads OHLCV data, estimates dominant periods with
+    Goertzel-based analysis, reconstructs projected cycle signals, and exposes
+    helper workflows used by the research notebooks under
+    ``D:\\Dropbox\\TRADING\\STUDIES DEVELOPMENT\\CYCLES ANALYSIS``.
+
+    The public API is still legacy-compatible and intentionally broad. Many
+    arguments are meaningful only for selected workflows; those mode-specific
+    relationships are documented on the methods where they are consumed.
+    """
 
     class Drive(Enum):
         local = 1
@@ -149,6 +160,63 @@ class cyPredict:
                  time_tracking = False,
                  output_clearing = False,
                  print_activity_remarks = True): 
+        """Create an analysis instance and immediately initialize market data.
+
+        Parameters
+        ----------
+        data_source : str, default "yfinance"
+            Input provider. Supported values in the current implementation are
+            ``"yfinance"`` and ``"file"``. ``"yfinance"`` calls
+            ``yf.download`` with ``ticker``, ``data_start_date``,
+            ``data_end_date`` and ``data_timeframe``. ``"file"`` reads
+            ``data_filename`` as a CSV and expects a ``Datetime`` column.
+        data_filename : str or path-like, optional
+            CSV path used only when ``data_source == "file"``. The file must
+            contain at least ``Datetime`` plus the price columns later selected
+            by analysis methods, normally ``Open``, ``High``, ``Low``,
+            ``Close`` and ``Volume``.
+        ticker : str, default "SPY"
+            Symbol passed to Yahoo Finance when ``data_source == "yfinance"``.
+            It is also stored in ``self.state`` for logging and downstream
+            reporting.
+        data_start_date, data_end_date : str or datetime-like, optional
+            Download bounds for Yahoo Finance. For deterministic baselines,
+            prefer closed historical ranges such as ``2022-01-01`` to
+            ``2024-01-01``. ``data_end_date=None`` requests data up to the
+            provider default/current availability.
+        data_timeframe : str, default "1d"
+            Yahoo interval, for example ``"1d"``, ``"5m"`` or ``"1h"``. The
+            value affects timezone handling in ``download_finance_data``.
+        data_storage_path : str, default "\\cyPredict\\"
+            Base path used by later file-writing/reporting helpers. It does not
+            change the initial data download.
+        time_tracking : bool, default False
+            Enables elapsed-time prints through ``track_time``.
+        output_clearing : bool, default False
+            Legacy notebook flag retained for workflows that clear notebook
+            output between long processing steps.
+        print_activity_remarks : bool, default True
+            Enables verbose progress prints in selected workflows.
+
+        Notes
+        -----
+        Construction has side effects: it downloads or reads data immediately
+        and populates ``self.data`` and ``self.state``. For tests or worker
+        jobs, instantiate once per independent data request.
+
+        Example
+        -------
+        >>> cp = cyPredict(
+        ...     data_source="yfinance",
+        ...     ticker="QQQ",
+        ...     data_start_date="2022-01-01",
+        ...     data_end_date="2024-01-01",
+        ...     data_timeframe="1d",
+        ...     print_activity_remarks=False,
+        ... )
+        >>> cp.state["data_state"]
+        'initialized'
+        """
 
         # Instance variables (attributes)
         self.data_source = data_source
@@ -237,6 +305,46 @@ class cyPredict:
         data_end_date,
         data_timeframe
     ):
+        """Load OHLCV data into ``self.data``.
+
+        Parameters
+        ----------
+        data_source : {"yfinance", "file"}
+            Source selector. ``"yfinance"`` downloads through Yahoo Finance.
+            ``"file"`` reads a local CSV.
+        data_filename : str or path-like, optional
+            CSV path used only for ``data_source == "file"``. The file branch
+            expects a column named exactly ``Datetime``; this column is parsed,
+            set as index, and sorted.
+        ticker : str
+            Yahoo symbol used only when ``data_source == "yfinance"``.
+        data_start_date, data_end_date : str or datetime-like
+            Yahoo download bounds. ``data_end_date`` follows Yahoo semantics:
+            it is normally exclusive for daily bars.
+        data_timeframe : str
+            Yahoo interval. Intraday values containing ``"m"`` or ``"h"``
+            keep/localize timezone-aware indexes; daily/weekly/monthly values
+            are normalized to timezone-naive indexes.
+
+        Returns
+        -------
+        None
+            The method mutates ``self.data``, ``self.data_start_date``,
+            ``self.data_end_date`` and ``self.state``.
+
+        Raises
+        ------
+        No exception is intentionally re-raised. Existing behavior catches
+        exceptions, stores the message in ``self.state["data_state_msg"]`` and
+        prints the error.
+
+        Example
+        -------
+        >>> cp = cyPredict(print_activity_remarks=False)
+        >>> cp.download_finance_data("file", r"C:\\data\\bars.csv", "QQQ", None, None, "1d")
+        >>> cp.data.index.name
+        'Datetime'
+        """
         try:
             if data_source == 'yfinance':
                 
@@ -1012,6 +1120,123 @@ class cyPredict:
                          enabled_multiprocessing = False,
                          time_tracking = False                         
                          ):
+        """Run a single dominant-cycle analysis on one period range.
+
+        This is the core single-range workflow used directly by notebooks and
+        indirectly by ``multiperiod_analysis``. It prepares the selected price
+        series, applies the requested detrending path, runs Goertzel analysis
+        over ``min_period``..``max_period``, selects dominant cycles, rebuilds
+        projected sinusoidal signals, and optionally computes correlation
+        scores and plotting artifacts.
+
+        Parameters
+        ----------
+        data : pandas.DataFrame, optional
+            Input OHLCV/frame override. When omitted, ``self.data`` is used.
+            The index is converted to ``DatetimeIndex`` and sorted in place on
+            the working object.
+        data_column_name : str, default "Close"
+            Column analyzed for dominant cycles. Most notebook workflows use
+            ``"Close"``.
+        transform_precision : float, default 0.01
+            Frequency-grid precision for Goertzel search. Smaller values
+            increase resolution and runtime.
+        num_samples, start_date, current_date : optional
+            Window definition. Existing behavior expects exactly two of these
+            three values to be meaningful. The common notebook path passes
+            ``num_samples`` and ``current_date`` and leaves ``start_date`` as
+            ``None``.
+        final_kept_n_dominant_circles : int, default 1
+            Number of selected dominant cycles kept after scoring/filtering.
+        dominant_cicles_sorting_type : str, default "global_score"
+            Ranking mode for dominant periods. ``"global_score"`` is the
+            current notebook default.
+        limit_n_harmonics : int, optional
+            Optional cap on harmonics considered during peak processing.
+        min_period, max_period : int
+            Period search range. These bounds define the candidate cycle
+            lengths and interact with ``num_samples``: very long periods need
+            enough samples to be meaningful.
+        detrend_type : {"none", "hp_filter", "linear", "lowess"}, default "none"
+            Detrending mode. ``hp_filter_lambda`` is meaningful for
+            ``"hp_filter"``. ``lowess_k`` is meaningful for ``"lowess"``.
+            ``detrend_window`` is meaningful for linear detrending.
+        detrend_window : int, default 0
+            Window for linear detrending paths.
+        bartel_peaks_filtering : bool, default True
+            Enables Bartels-score filtering of peaks.
+        bartel_scoring_threshold : float, default 0.5
+            Minimum Bartels-related score used when filtering is enabled.
+        hp_filter_lambda : float, default 100
+            Lambda for the HP filter path.
+        jp_filter_p, jp_filter_h : int
+            Parameters for the Jurik-like filter branch used in existing
+            extrema/correlation processing.
+        cut_to_date_before_detrending : bool, default True
+            When true, the analysis cuts data at ``current_date`` before
+            detrending to avoid using future data in the detrend reference.
+        lowess_k : int, default 3
+            LOWESS factor, meaningful only with ``detrend_type == "lowess"``.
+        windowing : {None, "tukey", "kaiser"}, optional
+            Optional window function before transform. ``kaiser_beta`` matters
+            only when ``windowing == "kaiser"``.
+        kaiser_beta : float, default 5
+            Kaiser window beta.
+        centered_averages : bool, default True
+            Enables centered-average derived columns used by correlations and
+            scoring.
+        other_correlations : bool, default False
+            Enables additional correlation columns. Some legacy paths expect
+            these columns to exist, so disabling this can expose missing-column
+            behavior documented in ``docs/known_baseline_blockers.md``.
+        include_calibrated_MACD, include_calibrated_RSI : bool
+            Legacy flags currently retained for notebook compatibility. Static
+            analysis marks them as unused in this method.
+        show_charts : bool, default False
+            Displays Plotly charts. It should not affect numerical outputs.
+        print_report : bool, default True
+            Prints tabular/details report.
+        indicators_signal_calcualtion : bool, default True
+            Legacy misspelled flag retained for compatibility. Static analysis
+            marks it as unused in this method.
+        debug : bool, default False
+            Enables selected debug prints.
+        enabled_multiprocessing : bool, default False
+            Legacy compatibility parameter; static analysis marks it as unused
+            in this method.
+        time_tracking : bool, default False
+            Enables elapsed-time prints for this call.
+
+        Returns
+        -------
+        tuple
+            ``(current_date, index_of_max_time_for_cd, original_data,
+            signals_results, configuration)``.
+
+            ``original_data`` is the working dataframe with appended cycle and
+            detrended columns. ``signals_results`` stores selected dominant
+            cycle metadata, including period, frequency, amplitude, phase and
+            rebuild indexes. ``configuration`` mirrors the main inputs used for
+            the run.
+
+        Example
+        -------
+        >>> cp = cyPredict(
+        ...     data_source="yfinance", ticker="QQQ",
+        ...     data_start_date="2022-01-01", data_end_date="2024-01-01",
+        ...     data_timeframe="1d", print_activity_remarks=False)
+        >>> current_date, idx, data, signals, config = cp.analyze_and_plot(
+        ...     data_column_name="Close",
+        ...     num_samples=256,
+        ...     current_date="2023-12-29",
+        ...     final_kept_n_dominant_circles=4,
+        ...     min_period=10,
+        ...     max_period=80,
+        ...     detrend_type="hp_filter",
+        ...     other_correlations=True,
+        ...     show_charts=False,
+        ...     print_report=False)
+        """
 
         # Configuration
         configuration = {
@@ -2108,6 +2333,121 @@ class cyPredict:
                              time_tracking = False,
                              print_activity_remarks = False 
                             ):
+        """Run multiple period ranges and refit the combined cycle signal.
+
+        ``multiperiod_analysis`` decomposes one analysis date into several
+        period ranges, calls ``analyze_and_plot`` for each row of
+        ``periods_pars``, merges the selected dominant cycles, and then
+        optimizes/refits amplitudes, frequencies and phases according to
+        ``opt_algo_type``. This is the main workflow used by the notebooks for
+        projected local extrema and for downstream min/max analysis.
+
+        Parameters
+        ----------
+        data_column_name : str
+            Price column to analyze, normally ``"Close"``.
+        current_date : str or datetime-like
+            Last observed bar used as the analysis anchor. Future projections
+            are built after this point.
+        periods_pars : pandas.DataFrame
+            Range definition table. Required columns are
+            ``num_samples``, ``final_kept_n_dominant_circles``,
+            ``min_period``, ``max_period`` and ``hp_filter_lambda``. Optional
+            row-level columns such as ``detrend_type`` and ``lowess_k`` override
+            method-level defaults for that range.
+        best_fit_start_back_period : int, optional
+            Legacy tuning argument stored on ``self`` and used by selected
+            evaluation paths. Some callers pass it while using algorithms where
+            it is not active.
+        pars_from_opt_file, files_path_name : bool, str, optional
+            Legacy parameters retained because notebooks still pass them.
+            Static analysis currently marks them as unused in this method.
+        show_charts : bool, default True
+            Enables Plotly chart creation and display.
+        population_n, CXPB, MUTPB, NGEN : int or float
+            Genetic optimizer population size, crossover probability, mutation
+            probability and number of generations. Meaningful for genetic
+            ``opt_algo_type`` values.
+        MultiAn_fitness_type : str, default "mse"
+            Fitness metric selector used by the multi-analysis optimizer.
+        MultiAn_fitness_type_svg_smoothed : bool, default True
+            If true, smooths the reference detrended series before optimization.
+        MultiAn_fitness_type_svg_filter : int, default 5
+            Savitzky-Golay filter window used when smoothing is enabled.
+        weigth : float, default -1.0
+            DEAP fitness weight. Negative values minimize loss.
+        reference_detrended_data : {"longest", "less_detrended"}
+            Selects which single-range detrended series becomes the optimizer
+            reference. ``"longest"`` uses the range with most samples.
+            ``"less_detrended"`` chooses the least aggressive detrend proxy
+            for HP/LOWESS paths.
+        windowing, kaiser_beta
+            Routed to ``analyze_and_plot``. ``kaiser_beta`` is meaningful only
+            with Kaiser windowing.
+        bb_delta_fixed_periods, bb_delta_sg_filter_window, RSI_cycles_analysis_type
+            Legacy indicator/min-max parameters stored on ``self``. They are
+            still passed by notebooks and should not be removed without broader
+            min/max golden coverage.
+        enable_cycles_alignment_analysis : bool, default True
+            Enables cycle-alignment KPI calculations.
+        opt_algo_type : str, default "genetic_omny_frequencies"
+            Optimizer branch. Known values in the implementation include
+            ``"mono_frequency"``, ``"genetic_omny_frequencies"``,
+            ``"genetic_frequencies_ranges"``, ``"tpe"`` and ``"atpe"``.
+            ``frequencies_ft`` and ``phases_ft`` matter only for branches that
+            optimize those dimensions.
+        amplitudes_inizialization_type : str, default "random"
+            Amplitude initialization strategy used by the optimizer.
+        frequencies_ft, phases_ft : bool
+            Allow optimizer movement around Goertzel frequencies/phases when
+            the selected algorithm supports those variables.
+        cut_to_date_before_detrending : bool, default True
+            Passed to single-range analysis to prevent future data leakage in
+            detrending.
+        detrend_type, lowess_k, linear_filter_window_size_multiplier
+            Detrending controls routed to ``analyze_and_plot``. ``lowess_k`` is
+            meaningful only for LOWESS. ``linear_filter_window_size_multiplier``
+            sets the linear detrend window as a multiple of ``max_period``.
+        period_related_rebuild_range, period_related_rebuild_multiplier
+            Control whether rebuilt-cycle comparison windows are constrained by
+            period length.
+        discretization_steps : int, default 1000
+            Discrete grid size used in segmented mutation.
+        enabled_multiprocessing : bool, default True
+            Enables multiprocessing in supported optimizer branches. Nested
+            callers often disable this to avoid double multiprocessing.
+        time_tracking : bool, default False
+            Enables elapsed-time prints.
+        print_activity_remarks : bool, default False
+            Enables verbose progress prints and displayed intermediate rows.
+
+        Returns
+        -------
+        tuple
+            Existing notebook contract:
+            ``(elaborated_data_df, signals_results_df, composite_signal,
+            configurations, bb_delta, cdc_rsi, index_of_max_time_for_cd,
+            scaled_signals, best_fitness_value)``.
+
+            ``elaborated_data_df`` and ``signals_results_df`` concatenate
+            single-range outputs. ``composite_signal`` is the refit projected
+            dominant-cycle signal. ``scaled_signals`` contains scaled alignment
+            and weighted KPI outputs when enabled.
+
+        Example
+        -------
+        >>> periods = pd.DataFrame(
+        ...     [[256, 4, 10, 80, 1600]],
+        ...     columns=["num_samples", "final_kept_n_dominant_circles",
+        ...              "min_period", "max_period", "hp_filter_lambda"])
+        >>> result = cp.multiperiod_analysis(
+        ...     data_column_name="Close",
+        ...     current_date="2023-12-29",
+        ...     periods_pars=periods,
+        ...     opt_algo_type="genetic_omny_frequencies",
+        ...     show_charts=False,
+        ...     enabled_multiprocessing=False)
+        """
 
         
         print(f'Data column name: {data_column_name}')
@@ -3633,6 +3973,34 @@ class cyPredict:
 
 
     def rebuilt_signal_zeros(self, signal, start_rebuilt_signal_index, data):
+        """Pad a rebuilt cycle signal so it aligns with the data index.
+
+        Parameters
+        ----------
+        signal : array-like
+            Rebuilt sinusoidal signal segment starting at
+            ``start_rebuilt_signal_index``.
+        start_rebuilt_signal_index : int
+            Position in ``data`` where ``signal`` should begin. Zeros are
+            prepended before this index.
+        data : pandas.DataFrame or sequence-like
+            Reference data whose length defines the current observed range.
+
+        Returns
+        -------
+        tuple
+            ``(signal, projection_periods_extensions)``. The returned signal is
+            left-padded with zeros and trimmed/padded to the observed data
+            length when possible. ``projection_periods_extensions`` is the
+            number of periods by which the rebuilt signal extends beyond
+            ``data``; callers use it to extend the datetime index.
+
+        Notes
+        -----
+        This function does not calculate cycle values. It only aligns an
+        already calculated signal with the dataframe length and projection
+        horizon.
+        """
 
         total_length = len(data)
         len_before = len(signal)
@@ -5704,6 +6072,58 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                 time_tracking = True,
                                                 print_activity_remarks = False 
                                                 ):
+        """Build one min/max feature row for a single analysis date.
+
+        This wrapper calls ``multiperiod_analysis`` for ``current_date`` and
+        converts the resulting projected signals into a wide dataframe of
+        local extrema features. It is used by ``get_min_max_analysis_df`` to
+        create incremental CSV datasets for backtesting and model features.
+
+        Parameters
+        ----------
+        data_column_name : str
+            Price column analyzed by the underlying cycle workflow.
+        current_date : str or datetime-like
+            Anchor date/bar for the analysis.
+        periods_pars : pandas.DataFrame
+            Period-range table passed directly to ``multiperiod_analysis``.
+        pars_from_opt_file, files_path_name : optional
+            Legacy parameters routed to ``multiperiod_analysis`` for notebook
+            compatibility.
+        population_n, CXPB, MUTPB, NGEN : int or float
+            Optimizer controls for the underlying multi-period refit.
+        MultiAn_fitness_type, MultiAn_fitness_type_svg_smoothed,
+        MultiAn_fitness_type_svg_filter, reference_detrended_data
+            Fitness/reference controls passed through to ``multiperiod_analysis``.
+        bb_delta_fixed_periods, bb_delta_sg_filter_window, RSI_cycles_analysis_type
+            Legacy indicator parameters. Static analysis currently marks them
+            as unused in this wrapper, but notebooks still pass them.
+        opt_algo_type, amplitudes_inizialization_type, frequencies_ft, phases_ft
+            Optimizer branch and variable controls. Frequency/phase flags are
+            meaningful only for algorithms that optimize those dimensions.
+        detrend_type, cut_to_date_before_detrending, linear_filter_window_size_multiplier,
+        period_related_rebuild_range, period_related_rebuild_multiplier,
+        discretization_steps, lowess_k, windowing, kaiser_beta
+            Detrending, rebuild-range and transform controls passed through to
+            the underlying analysis.
+        enabled_multiprocessing : bool, default True
+            Enables multiprocessing where supported by the selected optimizer.
+        show_charts : bool, default False
+            Forwarded plotting flag; should not change numerical outputs.
+        N_elements_prices_CDC, N_elements_goertzel_CDC,
+        N_elements_alignmentsKPI_CDC, N_elements_weigthed_alignmentsKPI_CDCC : int
+            Number of past/future extrema features retained for each signal
+            family.
+        time_tracking, print_activity_remarks : bool
+            Runtime/progress logging flags.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A one-row dataframe containing ``datetime``, ``best_fitness_value``,
+            OHLCV values, derived price deltas, projected extrema descriptors
+            and cycle-alignment trend fields.
+        """
         
         
 
@@ -5871,6 +6291,61 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                 time_tracking = True,
                                 print_activity_remarks = False 
                                ):
+        """Create or resume an incremental min/max analysis dataframe.
+
+        The method iterates over missing dates in ``self.data`` up to
+        ``current_date``, calls ``min_max_analysis_concatenated_dataframe`` for
+        each date, appends the resulting rows, and persists the CSV to
+        ``file_path + file_name``.
+
+        Parameters
+        ----------
+        cycles_parameters : pandas.DataFrame
+            Period-range table used for every date processed.
+        current_date : str or datetime-like
+            Last date to consider. The date must exist in ``self.data.index``.
+        lookback_periods : int
+            Number of bars before ``current_date`` considered for incremental
+            processing.
+        source_type : Drive
+            Legacy storage selector. Static analysis marks it as unused in the
+            current implementation.
+        retrieve_pars_from_file, optimized_pars_filepath : optional
+            Parameters for workflows that derive cycle parameters from an
+            optimization file.
+        min_period, max_period : int, optional
+            Optional filter bounds for retrieved optimization parameters.
+        data_column_name : str, default "Close"
+            Legacy argument retained for compatibility; current downstream
+            calls are effectively hard-coded to close-price analysis.
+        population_n, CXPB, MUTPB, NGEN : int or float
+            Optimizer controls passed through to per-date analysis.
+        resume : bool, default False
+            If true and the target CSV exists, load it and process only missing
+            dates.
+        GoogleDriveMountPoint : str
+            Legacy Colab/Drive parameter. Static analysis marks it as unused in
+            the current implementation.
+        file_path, file_name : str
+            Output CSV location. They are concatenated into ``file_path_name``.
+        index_column_name : str, default "datetime"
+            Legacy CSV-index parameter. Current resume loading parses
+            ``datetime`` directly.
+        opt_algo_type, amplitudes_inizialization_type, frequencies_ft, phases_ft,
+        detrend_type, cut_to_date_before_detrending, linear_filter_window_size_multiplier,
+        period_related_rebuild_range, period_related_rebuild_multiplier,
+        discretization_steps, lowess_k, windowing, kaiser_beta,
+        enabled_multiprocessing
+            Passed through to ``min_max_analysis_concatenated_dataframe``.
+        time_tracking, print_activity_remarks : bool
+            Runtime/progress logging flags.
+
+        Returns
+        -------
+        pandas.DataFrame
+            The updated min/max analysis dataframe, also written to CSV after
+            each appended row.
+        """
         
         file_path_name = file_path + file_name
         
@@ -6144,4 +6619,3 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         residual = signal - trend
 
         return trend, residual
-
