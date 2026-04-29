@@ -71,4 +71,4 @@ This inventory is intentionally descriptive. It does not authorize removals by i
 - Several return tuples contain placeholders or `None` values that should be documented before any contract change.
 - Long public signatures should be stabilized through config objects rather than repeated positional/keyword expansion.
 - Notebook compatibility matters because historical notebooks still call older parameters such as `CDC_bb_analysis`, `CDC_RSI_analysis`, `CDC_MACD_analysis`, and sometimes `time_zone`.
-
+- Structured logging utilities now exist in `cyPredict.logging_utils`, but they are not wired into calculation paths yet.
