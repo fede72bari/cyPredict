@@ -22,12 +22,8 @@
       "detrend_type": "hp_filter",
       "detrend_window": 0,
       "dominant_cicles_sorting_type": "global_score",
-      "enabled_multiprocessing": false,
       "final_kept_n_dominant_circles": 4,
       "hp_filter_lambda": 1600,
-      "include_calibrated_MACD": true,
-      "include_calibrated_RSI": true,
-      "indicators_signal_calcualtion": true,
       "jp_filter_h": 100,
       "jp_filter_p": 3,
       "kaiser_beta": 5,
@@ -47,10 +43,10 @@
     "name": "qqq_eod_analyze_and_plot"
   },
   "metadata": {
-    "config_sha256": "78523ecc305f92b1ea44117df7845494682c5ddfaa0829d2381dca73a75fe28c",
-    "elapsed_seconds": 11.320360300014727,
-    "generated_at": "2026-04-29T15:37:52.620164+00:00",
-    "git_commit": "b0ac713cb3cb0cdfd292d1adeafdeafec6568777",
+    "config_sha256": "158e8a4c9dc58cabfa9ce19fb7132f58d82a530ccdeb96bae5fb6dcf87b3db21",
+    "elapsed_seconds": 6.480102900008205,
+    "generated_at": "2026-04-29T16:46:37.487877+00:00",
+    "git_commit": "eebf4fc4473ade661d29466215b5e518a0f01c57",
     "native_modules": [
       {
         "module": "goertzel",
@@ -129,7 +125,7 @@
           "scaled_savgol_filter_delta": "float64"
         },
         "first_index": "2022-01-03 00:00:00",
-        "hash": "e775c8c38e70ac0299f4d74ddeca17e6c75c24ae6d2ec6b3261dcb24710ee044",
+        "hash": "47348cede7bc9f9ded9fd2ff1d689ee46a7b4543f6442baeab129ad856949b6d",
         "hash_strategy": "pandas_hash",
         "head": {
           "columns": [
@@ -161,7 +157,7 @@
               0.0,
               0.0,
               0.0,
-              8.4253291346
+              8.4253249729
             ],
             [
               386.1123352051,
@@ -176,13 +172,13 @@
               0.0,
               0.0,
               0.0,
-              5.6764997297
+              5.6764966223
             ],
             [
-              374.2505187988,
-              385.5474773608,
-              373.9973017297,
-              384.427497075,
+              374.2505493164,
+              385.5475087996,
+              373.9973322266,
+              384.4275284225,
               75739800.0,
               0.0,
               0.0,
@@ -191,13 +187,13 @@
               0.0,
               0.0,
               0.0,
-              -3.8655593731
+              -3.8655309061
             ],
             [
-              373.9875183105,
-              377.2305391506,
-              370.1991594933,
-              372.4293418722,
+              373.9875488281,
+              377.2305699328,
+              370.1991897018,
+              372.4293722626,
               70814300.0,
               0.0,
               0.0,
@@ -206,13 +202,13 @@
               0.0,
               0.0,
               0.0,
-              -1.8228820317
+              -1.8228525006
             ],
             [
-              369.9362792969,
-              375.6821676865,
-              368.1638487324,
-              373.9973526175,
+              369.9362182617,
+              375.6821057033,
+              368.1637879897,
+              373.9972909123,
               72652300.0,
               0.0,
               0.0,
@@ -221,7 +217,7 @@
               0.0,
               0.0,
               0.0,
-              -3.5889203579
+              -3.5889813216
             ]
           ],
           "index": [
@@ -265,7 +261,7 @@
               null,
               null,
               0.0,
-              -535.5336963612,
+              -535.5340955325,
               null,
               null,
               null,
@@ -280,7 +276,7 @@
               null,
               null,
               0.0,
-              -702.4930511546,
+              -702.4929687821,
               null,
               null,
               null,
@@ -295,7 +291,7 @@
               null,
               null,
               0.0,
-              -677.1504742897,
+              -677.1497242742,
               null,
               null,
               null,
@@ -310,7 +306,7 @@
               null,
               null,
               0.0,
-              -479.4926361859,
+              -479.4912400718,
               null,
               null,
               null,
@@ -325,7 +321,7 @@
               null,
               null,
               0.0,
-              -184.6959188143,
+              -184.6941181007,
               null,
               null,
               null,
@@ -354,7 +350,7 @@
           "start_rebuilt_signal_index": "float64"
         },
         "first_index": 0,
-        "hash": "13eabc0b792f75fbaa2a972ffce0a6d606320b230ecbfb9e2f2e4587e114875a",
+        "hash": "78d8f10cae56221a87c36e674b489103b7b5cf2aeae0e46fc52d137f0b61e14b",
         "hash_strategy": "json_split",
         "head": {
           "columns": [
@@ -368,10 +364,10 @@
               null,
               {
                 "end_rebuilt_signal_index": 756,
-                "peak_amplitudes": 430.8316968013,
+                "peak_amplitudes": 430.8320912339,
                 "peak_frequencies": 0.0964355469,
                 "peak_periods": 10.3696202532,
-                "peak_phases": 4.5835506731,
+                "peak_phases": 4.5835519483,
                 "sin_dominant_circle_signal_name": "dominant_circle_signal_period_10.369620253164557",
                 "start_rebuilt_signal_index": 245
               }
@@ -381,10 +377,10 @@
               null,
               {
                 "end_rebuilt_signal_index": 756,
-                "peak_amplitudes": 697.0885233337,
+                "peak_amplitudes": 697.089264036,
                 "peak_frequencies": 0.0369140625,
                 "peak_periods": 27.0899470899,
-                "peak_phases": -0.8381552989,
+                "peak_phases": -0.8381556448,
                 "sin_dominant_circle_signal_name": "dominant_circle_signal_period_27.089947089947092",
                 "start_rebuilt_signal_index": 245
               }
@@ -394,10 +390,10 @@
               null,
               {
                 "end_rebuilt_signal_index": 756,
-                "peak_amplitudes": 385.7242569804,
+                "peak_amplitudes": 385.7255482614,
                 "peak_frequencies": 0.0637695312,
                 "peak_periods": 15.6814701378,
-                "peak_phases": 2.722925283,
+                "peak_phases": 2.722928057,
                 "sin_dominant_circle_signal_name": "dominant_circle_signal_period_15.681470137825421",
                 "start_rebuilt_signal_index": 245
               }
@@ -407,10 +403,10 @@
               null,
               {
                 "end_rebuilt_signal_index": 756,
-                "peak_amplitudes": 541.3557343981,
+                "peak_amplitudes": 541.3571658128,
                 "peak_frequencies": 0.0422363281,
                 "peak_periods": 23.676300578,
-                "peak_phases": -1.4611630324,
+                "peak_phases": -1.4611616479,
                 "sin_dominant_circle_signal_name": "dominant_circle_signal_period_23.67630057803468",
                 "start_rebuilt_signal_index": 245
               }
@@ -443,10 +439,10 @@
               null,
               {
                 "end_rebuilt_signal_index": 756,
-                "peak_amplitudes": 430.8316968013,
+                "peak_amplitudes": 430.8320912339,
                 "peak_frequencies": 0.0964355469,
                 "peak_periods": 10.3696202532,
-                "peak_phases": 4.5835506731,
+                "peak_phases": 4.5835519483,
                 "sin_dominant_circle_signal_name": "dominant_circle_signal_period_10.369620253164557",
                 "start_rebuilt_signal_index": 245
               }
@@ -456,10 +452,10 @@
               null,
               {
                 "end_rebuilt_signal_index": 756,
-                "peak_amplitudes": 697.0885233337,
+                "peak_amplitudes": 697.089264036,
                 "peak_frequencies": 0.0369140625,
                 "peak_periods": 27.0899470899,
-                "peak_phases": -0.8381552989,
+                "peak_phases": -0.8381556448,
                 "sin_dominant_circle_signal_name": "dominant_circle_signal_period_27.089947089947092",
                 "start_rebuilt_signal_index": 245
               }
@@ -469,10 +465,10 @@
               null,
               {
                 "end_rebuilt_signal_index": 756,
-                "peak_amplitudes": 385.7242569804,
+                "peak_amplitudes": 385.7255482614,
                 "peak_frequencies": 0.0637695312,
                 "peak_periods": 15.6814701378,
-                "peak_phases": 2.722925283,
+                "peak_phases": 2.722928057,
                 "sin_dominant_circle_signal_name": "dominant_circle_signal_period_15.681470137825421",
                 "start_rebuilt_signal_index": 245
               }
@@ -482,10 +478,10 @@
               null,
               {
                 "end_rebuilt_signal_index": 756,
-                "peak_amplitudes": 541.3557343981,
+                "peak_amplitudes": 541.3571658128,
                 "peak_frequencies": 0.0422363281,
                 "peak_periods": 23.676300578,
-                "peak_phases": -1.4611630324,
+                "peak_phases": -1.4611616479,
                 "sin_dominant_circle_signal_name": "dominant_circle_signal_period_23.67630057803468",
                 "start_rebuilt_signal_index": 245
               }

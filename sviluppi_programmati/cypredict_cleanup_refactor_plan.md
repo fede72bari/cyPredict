@@ -204,7 +204,6 @@ Capire cosa e' pubblico, cosa e' interno e quali parametri sono realmente attivi
    - `linear_filter_window_size_multiplier` significativo solo con detrend lineare o modalita' che lo usa;
    - `period_related_rebuild_multiplier` significativo solo se `period_related_rebuild_range == True`;
    - `frequencies_ft` e `phases_ft` significativi solo per algoritmi che ottimizzano frequenze/fasi;
-   - `bb_delta_sg_filter_window` significativo solo se l'analisi Bollinger/delta resta attiva;
    - `show_charts` significativo solo nei percorsi con plotting;
    - `enabled_multiprocessing` significativo solo per algoritmi che hanno ramo parallelizzato.
 5. Decidere se mantenere compatibilita' con i parametri visti nei notebook ma rimossi/commentati:
@@ -214,21 +213,23 @@ Capire cosa e' pubblico, cosa e' interno e quali parametri sono realmente attivi
    - `CDC_MACD_analysis`;
    - eventuali alias storici.
 
-### Candidati iniziali da verificare
+### Parametri verificati e rimossi
 
-Analisi statica preliminare sui nomi indica questi possibili parametri non usati direttamente:
+Analisi statica e controllo dei notebook hanno confermato la rimozione dei seguenti parametri senza modificare le procedure di calcolo:
 
 - `analyze_and_plot`: `include_calibrated_MACD`, `include_calibrated_RSI`, `indicators_signal_calcualtion`, `enabled_multiprocessing`.
-- `multiperiod_analysis`: `pars_from_opt_file`, `files_path_name`.
+- `multiperiod_analysis`: `pars_from_opt_file`, `files_path_name`, `bb_delta_fixed_periods`, `bb_delta_sg_filter_window`, `RSI_cycles_analysis_type`.
 - `indict_MACD_SGMACD`: `signals_results`.
 - `indict_RSI_SG_smooth_RSI`: `signals_results`.
 - `indict_centered_average_deltas`: `signals_results`.
 - `rebuilt_signal_zeros`: `debug`.
 - `CDC_vs_detrended_correlation`: `data`, `lowess_k`, `best_fit_start_back_period`.
-- `min_max_analysis_concatenated_dataframe`: `bb_delta_fixed_periods`, `bb_delta_sg_filter_window`, `RSI_cycles_analysis_type`, `show_charts`.
+- `CDC_vs_detrended_correlation_sum`: `best_fit_start_back_period`.
+- `trade_predicted_dominant_cicles_peaks`: `data`.
+- `min_max_analysis_concatenated_dataframe`: `pars_from_opt_file`, `files_path_name`, `bb_delta_fixed_periods`, `bb_delta_sg_filter_window`, `RSI_cycles_analysis_type`, `show_charts`.
 - `get_min_max_analysis_df`: `source_type`, `data_column_name`, `GoogleDriveMountPoint`, `index_column_name`.
 
-Questa lista non e' una autorizzazione alla rimozione: va confermata con analisi chiamanti, attributi di istanza e test golden.
+`enabled_multiprocessing` resta attivo nelle funzioni dove controlla davvero rami parallelizzati.
 
 ### Deliverable
 

@@ -35,13 +35,9 @@
     "kaiser_beta": 5,
     "centered_averages": true,
     "other_correlations": true,
-    "include_calibrated_MACD": true,
-    "include_calibrated_RSI": true,
     "show_charts": false,
     "print_report": false,
-    "indicators_signal_calcualtion": true,
     "debug": false,
-    "enabled_multiprocessing": false,
     "time_tracking": false
   }
 }

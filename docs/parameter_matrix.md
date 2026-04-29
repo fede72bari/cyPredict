@@ -31,12 +31,12 @@ These candidates came from a static scan of function bodies and must be verified
 
 | Function | Parameter | Status | Required verification |
 | --- | --- | --- | --- |
-| `analyze_and_plot` | `include_calibrated_MACD` | unused-candidate | Check older notebooks and intended indicator workflow. |
-| `analyze_and_plot` | `include_calibrated_RSI` | unused-candidate | Check older notebooks and intended indicator workflow. |
-| `analyze_and_plot` | `indicators_signal_calcualtion` | unused-candidate | Typo suggests legacy flag; check notebooks before removal. |
-| `analyze_and_plot` | `enabled_multiprocessing` | unused-candidate | Confirm no intended branch was removed. |
-| `multiperiod_analysis` | `pars_from_opt_file` | unused-candidate | Historical notebooks pass this; likely legacy/routing candidate. |
-| `multiperiod_analysis` | `files_path_name` | unused-candidate | Historical notebooks pass this; likely legacy/routing candidate. |
+| `analyze_and_plot` | `include_calibrated_MACD` | removed | Removed after code and notebook scan confirmed no body usage. |
+| `analyze_and_plot` | `include_calibrated_RSI` | removed | Removed after code and notebook scan confirmed no body usage. |
+| `analyze_and_plot` | `indicators_signal_calcualtion` | removed | Removed after code and notebook scan confirmed no body usage. |
+| `analyze_and_plot` | `enabled_multiprocessing` | removed | Removed only from `analyze_and_plot`; still active in optimizer workflows. |
+| `multiperiod_analysis` | `pars_from_opt_file` | removed | Removed after code and notebook scan confirmed no body usage. |
+| `multiperiod_analysis` | `files_path_name` | removed | Removed after code and notebook scan confirmed no body usage. |
 | `indict_MACD_SGMACD` | `signals_results` | unused-candidate | Check whether function was meant to mutate passed dataframe. |
 | `indict_RSI_SG_smooth_RSI` | `signals_results` | unused-candidate | Check whether function was meant to mutate passed dataframe. |
 | `indict_centered_average_deltas` | `signals_results` | unused-candidate | Check whether function was meant to mutate passed dataframe. |
@@ -44,14 +44,14 @@ These candidates came from a static scan of function bodies and must be verified
 | `CDC_vs_detrended_correlation` | `data` | unused-candidate | High-risk because public-ish function may rely on `self.data`. |
 | `CDC_vs_detrended_correlation` | `lowess_k` | unused-candidate | Check if missing routing is a bug before removing. |
 | `CDC_vs_detrended_correlation` | `best_fit_start_back_period` | unused-candidate | Check whether should be passed to `multiperiod_analysis`. |
-| `min_max_analysis_concatenated_dataframe` | `bb_delta_fixed_periods` | unused-candidate | Historical result columns may have depended on this. |
-| `min_max_analysis_concatenated_dataframe` | `bb_delta_sg_filter_window` | unused-candidate | Historical result columns may have depended on this. |
-| `min_max_analysis_concatenated_dataframe` | `RSI_cycles_analysis_type` | unused-candidate | Historical indicator workflow candidate. |
-| `min_max_analysis_concatenated_dataframe` | `show_charts` | unused-candidate | Likely routing/legacy. |
-| `get_min_max_analysis_df` | `source_type` | unused-candidate | Type currently references `Drive`; verify Google Drive path history. |
-| `get_min_max_analysis_df` | `data_column_name` | unused-candidate | Current call appears hard-coded to `Close`; may be a bug. |
-| `get_min_max_analysis_df` | `GoogleDriveMountPoint` | unused-candidate | Legacy Colab/Drive workflow. |
-| `get_min_max_analysis_df` | `index_column_name` | unused-candidate | Current CSV load path may have changed. |
+| `min_max_analysis_concatenated_dataframe` | `bb_delta_fixed_periods` | removed | Removed after code and notebook scan confirmed no body usage. |
+| `min_max_analysis_concatenated_dataframe` | `bb_delta_sg_filter_window` | removed | Removed after code and notebook scan confirmed no body usage. |
+| `min_max_analysis_concatenated_dataframe` | `RSI_cycles_analysis_type` | removed | Removed after code and notebook scan confirmed no body usage. |
+| `min_max_analysis_concatenated_dataframe` | `show_charts` | removed | Removed after code and notebook scan confirmed no body usage. |
+| `get_min_max_analysis_df` | `source_type` | removed | Removed after code and notebook scan confirmed no body usage. |
+| `get_min_max_analysis_df` | `data_column_name` | removed | Removed because the current workflow is hard-coded to `Close`. |
+| `get_min_max_analysis_df` | `GoogleDriveMountPoint` | removed | Removed after code and notebook scan confirmed no body usage. |
+| `get_min_max_analysis_df` | `index_column_name` | removed | Removed because resume loading parses `datetime` directly. |
 
 ## Removal Protocol
 
@@ -67,3 +67,7 @@ These candidates came from a static scan of function bodies and must be verified
 | --- | --- | --- | --- |
 | nested `pick_extrema_near_target` inside `multiperiod_analysis` | `indices` | Internal helper only; call sites updated in the same block. | Rapid pytest suite and optional QQQ golden scenario. |
 | `rebuilt_signal_zeros` | `debug` | Internal calls updated; the flag was never read. | Rapid pytest suite and optional QQQ golden scenario. |
+| `analyze_and_plot` | `include_calibrated_MACD`, `include_calibrated_RSI`, `indicators_signal_calcualtion`, `enabled_multiprocessing` | Signature, internal calls, golden scenario and notebooks updated. | AST unused-parameter scan, py_compile, pytest. |
+| `multiperiod_analysis` | `pars_from_opt_file`, `files_path_name`, `bb_delta_fixed_periods`, `bb_delta_sg_filter_window`, `RSI_cycles_analysis_type` | Signature, wrapper calls and notebooks updated; `enabled_multiprocessing` kept where active. | AST unused-parameter scan, py_compile, pytest. |
+| `min_max_analysis_concatenated_dataframe` | `pars_from_opt_file`, `files_path_name`, `bb_delta_fixed_periods`, `bb_delta_sg_filter_window`, `RSI_cycles_analysis_type`, `show_charts` | Signature, callers and notebooks updated. | AST unused-parameter scan, py_compile, pytest. |
+| `get_min_max_analysis_df` | `source_type`, `data_column_name`, `GoogleDriveMountPoint`, `index_column_name` | Signature and notebooks updated. | AST unused-parameter scan, py_compile, pytest. |

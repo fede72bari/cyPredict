@@ -2,7 +2,6 @@ import yfinance as yf
 
 # Basics
 from enum import Enum
-from typing import Type
 import sys
 import traceback
 from pathlib import Path
@@ -774,13 +773,9 @@ class cyPredict:
                          kaiser_beta = 5,
                          centered_averages = True,
                          other_correlations = False,
-                         include_calibrated_MACD = False,
-                         include_calibrated_RSI = False,
                          show_charts = False,
                          print_report = True,
-                         indicators_signal_calcualtion = True,
                          debug = False,
-                         enabled_multiprocessing = False,
                          time_tracking = False                         
                          ):
         """Run a single dominant-cycle analysis on one period range.
@@ -852,21 +847,12 @@ class cyPredict:
             Enables additional correlation columns. Some legacy paths expect
             these columns to exist, so disabling this can expose missing-column
             behavior documented in ``docs/known_baseline_blockers.md``.
-        include_calibrated_MACD, include_calibrated_RSI : bool
-            Legacy flags currently retained for notebook compatibility. Static
-            analysis marks them as unused in this method.
         show_charts : bool, default False
             Displays Plotly charts. It should not affect numerical outputs.
         print_report : bool, default True
             Prints tabular/details report.
-        indicators_signal_calcualtion : bool, default True
-            Legacy misspelled flag retained for compatibility. Static analysis
-            marks it as unused in this method.
         debug : bool, default False
             Enables selected debug prints.
-        enabled_multiprocessing : bool, default False
-            Legacy compatibility parameter; static analysis marks it as unused
-            in this method.
         time_tracking : bool, default False
             Enables elapsed-time prints for this call.
 
@@ -1862,8 +1848,6 @@ class cyPredict:
                              current_date,
                              periods_pars,
                              best_fit_start_back_period = None,                             
-                             pars_from_opt_file = False,
-                             files_path_name = None,
                              show_charts = True,
                              population_n = 40,
                              CXPB = 0.7,
@@ -1876,9 +1860,6 @@ class cyPredict:
                              reference_detrended_data = "longest", # less_detrended
                              windowing = None,
                              kaiser_beta = 5,
-                             bb_delta_fixed_periods = None,
-                             bb_delta_sg_filter_window = None,
-                             RSI_cycles_analysis_type = 'original_RSI', # 'SG_smooted_RSI',
                              enable_cycles_alignment_analysis = True,
                              opt_algo_type = 'genetic_omny_frequencies',  # 'genetic_omny_frequencies', 'genetic_frequencies_ranges','mono_frequency'
                              amplitudes_inizialization_type = "random",
@@ -1921,9 +1902,6 @@ class cyPredict:
             Legacy tuning argument stored on ``self`` and used by selected
             evaluation paths. Some callers pass it while using algorithms where
             it is not active.
-        pars_from_opt_file, files_path_name : bool, str, optional
-            Legacy parameters retained because notebooks still pass them.
-            Static analysis currently marks them as unused in this method.
         show_charts : bool, default True
             Enables Plotly chart creation and display.
         population_n, CXPB, MUTPB, NGEN : int or float
@@ -1946,10 +1924,6 @@ class cyPredict:
         windowing, kaiser_beta
             Routed to ``analyze_and_plot``. ``kaiser_beta`` is meaningful only
             with Kaiser windowing.
-        bb_delta_fixed_periods, bb_delta_sg_filter_window, RSI_cycles_analysis_type
-            Legacy indicator/min-max parameters stored on ``self``. They are
-            still passed by notebooks and should not be removed without broader
-            min/max golden coverage.
         enable_cycles_alignment_analysis : bool, default True
             Enables cycle-alignment KPI calculations.
         opt_algo_type : str, default "genetic_omny_frequencies"
@@ -2038,9 +2012,6 @@ class cyPredict:
         self.MultiAn_fitness_type_svg_filter = MultiAn_fitness_type_svg_filter
         self.weigth = weigth
         self.reference_detrended_data = reference_detrended_data
-        self.bb_delta_fixed_periods = bb_delta_fixed_periods
-        self.bb_delta_sg_filter_window = bb_delta_sg_filter_window
-        self.RSI_cycles_analysis_type = RSI_cycles_analysis_type
         self.enable_cycles_alignment_analysis = enable_cycles_alignment_analysis
         self.opt_algo_type = opt_algo_type
         self.cut_to_date_before_detrending = cut_to_date_before_detrending
@@ -2157,12 +2128,9 @@ class cyPredict:
                              cut_to_date_before_detrending = cut_to_date_before_detrending,
                              centered_averages = True,
                              other_correlations = True,
-                             include_calibrated_MACD = True,
-                             include_calibrated_RSI = True,
                              show_charts = False,
                              print_report = False,
-                             time_tracking = time_tracking,
-                             enabled_multiprocessing = enabled_multiprocessing
+                             time_tracking = time_tracking
                             )
         
             
@@ -3352,7 +3320,7 @@ class cyPredict:
 
 
 
-    def indict_MACD_SGMACD(self, data, signals_results, data_column_name, dominant_period, macd_slow_ratio = 26, macd_signal_ratio = 9):
+    def indict_MACD_SGMACD(self, data, data_column_name, dominant_period, macd_slow_ratio = 26, macd_signal_ratio = 9):
 
         indicators_period = int(dominant_period / 2)
         macd_fast = indicators_period
@@ -3394,7 +3362,7 @@ class cyPredict:
         return data, indicator_parameters
 
 
-    def indict_RSI_SG_smooth_RSI(self, data, signals_results, data_column_name, end_rebuilt_signal_index, dominant_period = 10):
+    def indict_RSI_SG_smooth_RSI(self, data, data_column_name, end_rebuilt_signal_index, dominant_period = 10):
 
         data_len = len(data)
         indicators_period = int(dominant_period / 2)
@@ -3433,7 +3401,7 @@ class cyPredict:
 
 
 
-    def indict_centered_average_deltas(self, data, signals_results, data_column_name, dominant_period = 10):
+    def indict_centered_average_deltas(self, data, data_column_name, dominant_period = 10):
 
         long_average = data[data_column_name].rolling(window=round(dominant_period), center = True).mean()
         long_average.fillna(0, inplace=True)
@@ -3556,14 +3524,13 @@ class cyPredict:
 
 
     def trade_predicted_dominant_cicles_peaks(self,
-                                              current_date,
-                                              data,
-                                              num_samples= 400,
-                                              final_kept_n_dominant_circles=4,
-                                              min_period = 30,
-                                              max_period = 80,
-                                              hp_filter_lambda = 170000,
-                                              time_tracking = False):
+                                               current_date,
+                                               num_samples= 400,
+                                               final_kept_n_dominant_circles=4,
+                                               min_period = 30,
+                                               max_period = 80,
+                                               hp_filter_lambda = 170000,
+                                               time_tracking = False):
 
 
         _, _, elaborated_data, _, _ = self.analyze_and_plot(
@@ -3584,13 +3551,10 @@ class cyPredict:
                                                 bartel_peaks_filtering = True,
                                                 centered_averages = True,
                                                 other_correlations = True,
-                                                include_calibrated_MACD = False,
-                                                include_calibrated_RSI = False,
                                                 show_charts = False,
                                                 print_report = False,
-                                                indicators_signal_calcualtion = False,
                                                 time_tracking = time_tracking
-                                               )
+                                                )
 
         if elaborated_data is None:
             value = 0
@@ -3628,7 +3592,6 @@ class cyPredict:
 
     def CDC_vs_detrended_correlation(self,
                                      current_date,
-                                     data,
                                      num_samples,
                                      final_kept_n_dominant_circles,
                                      min_period,
@@ -3638,11 +3601,9 @@ class cyPredict:
                                      detrend_type = 'hp_filter', #'linear', #'hp_filter',
                                      windowing = None,
                                      kaiser_beta = 3,
-                                     lowess_k = 3,
                                      linear_filter_window_size_multiplier = 0.7,
                                      period_related_rebuild_range = True,
-                                     period_related_rebuild_multiplier = 2.5,
-                                     best_fit_start_back_period = None, #16*2, #  None
+                                     period_related_rebuild_multiplier = 2.5
                                      ):
         
 
@@ -3657,14 +3618,12 @@ class cyPredict:
          composite_signal, 
          configurations, 
          bb_delta, cdc_rsi, 
-         index_of_max_time_for_cd, 
-         scaled_signals, 
-         best_fitness_value) = self.multiperiod_analysis(
+          index_of_max_time_for_cd,
+          scaled_signals,
+          best_fitness_value) = self.multiperiod_analysis(
                                                         data_column_name = 'Close',
                                                         current_date = current_date,
-                                                        periods_pars = cycles_parameters,   
-                                                        pars_from_opt_file = False,
-                                                        files_path_name = None,
+                                                        periods_pars = cycles_parameters,
                                                         population_n = 10,
                                                         CXPB = 0.7,
                                                         MUTPB = 0.3,
@@ -3673,9 +3632,6 @@ class cyPredict:
                                                         MultiAn_fitness_type_svg_smoothed = False,
                                                         MultiAn_fitness_type_svg_filter = 4,
                                                         reference_detrended_data = "less_detrended", # longest less_detrended
-                                                        bb_delta_fixed_periods = [8, 16], #, 32],
-                                                        bb_delta_sg_filter_window = None,
-                                                        RSI_cycles_analysis_type = 'original_RSI', #'SG_smooted_RSI' # 'original_RSI',
                                                         enable_cycles_alignment_analysis = False,
                                                         opt_algo_type = opt_algo_type, #'genetic_omny_frequencies', # 'genetic_omny_frequencies', 'genetic_frequencies_ranges','mono_frequency', 'tpe', 'atpe'
                                                         detrend_type = detrend_type, #'linear', #'linear', #'hp_filter',
@@ -3684,7 +3640,6 @@ class cyPredict:
                                                         linear_filter_window_size_multiplier = linear_filter_window_size_multiplier, #0.7,
                                                         period_related_rebuild_range = period_related_rebuild_range, #True,
                                                         period_related_rebuild_multiplier = period_related_rebuild_multiplier, #2.5,
-                                                        best_fit_start_back_period = None, #16*2, #  None
                                                         show_charts = False,
                                                         enabled_multiprocessing = False, # double level multiprocessing is not allowed 
                                                         time_tracking = self.time_tracking
@@ -3713,8 +3668,7 @@ class cyPredict:
                                           kaiser_beta = 3,                                             
                                           linear_filter_window_size_multiplier = 0.7,
                                           period_related_rebuild_range = True,
-                                          period_related_rebuild_multiplier = 2.5,
-                                          best_fit_start_back_period = None):
+                                          period_related_rebuild_multiplier = 2.5):
 
         last_date_index = data.index.get_loc(last_date)
 
@@ -3745,7 +3699,6 @@ class cyPredict:
 
             temp_fitness = self.CDC_vs_detrended_correlation(
                                                             current_date = current_date,
-                                                            data = data,
                                                             num_samples= num_samples,
                                                             final_kept_n_dominant_circles=final_kept_n_dominant_circles,
                                                             min_period = min_period,
@@ -3757,9 +3710,8 @@ class cyPredict:
                                                             detrend_type = detrend_type,
                                                             linear_filter_window_size_multiplier = linear_filter_window_size_multiplier,
                                                             period_related_rebuild_range = period_related_rebuild_range,
-                                                            period_related_rebuild_multiplier = period_related_rebuild_multiplier,
-                                                            best_fit_start_back_period = best_fit_start_back_period
-                                                          )
+                                                            period_related_rebuild_multiplier = period_related_rebuild_multiplier
+                                                           )
             
 
             fitness += temp_fitness
@@ -3806,7 +3758,6 @@ class cyPredict:
 
             PL = self.trade_predicted_dominant_cicles_peaks(
                                                       current_date = current_date,
-                                                      data = data,
                                                       num_samples= num_samples,
                                                       final_kept_n_dominant_circles=final_kept_n_dominant_circles,
                                                       min_period = min_period,
@@ -4447,8 +4398,7 @@ class cyPredict:
                 kaiser_beta = self.kaiser_beta,
                 linear_filter_window_size_multiplier = linear_filter_window_size_multiplier,
                 period_related_rebuild_range = self.period_related_rebuild_range,
-                period_related_rebuild_multiplier = period_related_rebuild_multiplier,
-                best_fit_start_back_period = self.best_fit_start_back_period
+                period_related_rebuild_multiplier = period_related_rebuild_multiplier
                 
             )
             
@@ -5194,8 +5144,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                 data_column_name,
                                                 current_date,
                                                 periods_pars,
-                                                pars_from_opt_file = False,
-                                                files_path_name = None,
                                                 population_n = 10,
                                                 CXPB = 0.7,
                                                 MUTPB = 0.3,
@@ -5204,11 +5152,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                 MultiAn_fitness_type_svg_smoothed = False,
                                                 MultiAn_fitness_type_svg_filter = 4,
                                                 reference_detrended_data = "less_detrended", # longest less_detrended
-                                                bb_delta_fixed_periods = [8, 16],
-                                                bb_delta_sg_filter_window = None,
-                                                RSI_cycles_analysis_type = 'original_RSI', #'SG_smooted_RSI' # 'original_RSI',
-
-
                                                 opt_algo_type = 'cpp_genetic_amp_freq_phase', # 'cpp_genetic_amp_freq_phase' 'nlopt_amplitudes_freqs_phases', #'', # 'genetic_omny_frequencies', 'tpe', 'atpe'
                                                 amplitudes_inizialization_type = "all_equal_middle_value", # "random", "all_equal_middle_value", "transform_amplitudes"
                                                 frequencies_ft = True,
@@ -5223,7 +5166,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                 windowing = 'kaiser', #'kaiser', # 'kaiser', #kaiser None
                                                 kaiser_beta = 1,                                
                                                 enabled_multiprocessing = True,
-                                                show_charts = False,
                                                 N_elements_prices_CDC = 6,
                                                 N_elements_goertzel_CDC = 3,
                                                 N_elements_alignmentsKPI_CDC = 10,
@@ -5246,17 +5188,11 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             Anchor date/bar for the analysis.
         periods_pars : pandas.DataFrame
             Period-range table passed directly to ``multiperiod_analysis``.
-        pars_from_opt_file, files_path_name : optional
-            Legacy parameters routed to ``multiperiod_analysis`` for notebook
-            compatibility.
         population_n, CXPB, MUTPB, NGEN : int or float
             Optimizer controls for the underlying multi-period refit.
         MultiAn_fitness_type, MultiAn_fitness_type_svg_smoothed,
         MultiAn_fitness_type_svg_filter, reference_detrended_data
             Fitness/reference controls passed through to ``multiperiod_analysis``.
-        bb_delta_fixed_periods, bb_delta_sg_filter_window, RSI_cycles_analysis_type
-            Legacy indicator parameters. Static analysis currently marks them
-            as unused in this wrapper, but notebooks still pass them.
         opt_algo_type, amplitudes_inizialization_type, frequencies_ft, phases_ft
             Optimizer branch and variable controls. Frequency/phase flags are
             meaningful only for algorithms that optimize those dimensions.
@@ -5267,8 +5203,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             the underlying analysis.
         enabled_multiprocessing : bool, default True
             Enables multiprocessing where supported by the selected optimizer.
-        show_charts : bool, default False
-            Forwarded plotting flag; should not change numerical outputs.
         N_elements_prices_CDC, N_elements_goertzel_CDC,
         N_elements_alignmentsKPI_CDC, N_elements_weigthed_alignmentsKPI_CDCC : int
             Number of past/future extrema features retained for each signal
@@ -5301,8 +5235,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                 data_column_name = data_column_name,
                                                 current_date = current_date, #'2024-01-18',
                                                 periods_pars = periods_pars,
-                                                pars_from_opt_file = pars_from_opt_file,
-                                                files_path_name = files_path_name,
                                                 population_n = population_n,
                                                 CXPB = CXPB,
                                                 MUTPB = MUTPB,
@@ -5414,21 +5346,17 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                 cycles_parameters,
                                 current_date,
                                 lookback_periods,
-                                source_type: Type[Drive],
                                 retrieve_pars_from_file = False,
                                 optimized_pars_filepath = None,
                                 min_period = None,
                                 max_period = None,
-                                data_column_name = 'Close',
                                 population_n = 10,
                                 CXPB = 0.7,
                                 MUTPB = 0.3,
                                 NGEN = 400,
                                 resume = False,
-                                GoogleDriveMountPoint = '/content/drive',
                                 file_path = '/My Drive',
                                 file_name = '/min_max_prices_analysis.csv',
-                                index_column_name = 'datetime',
                                 opt_algo_type = 'cpp_genetic_amp_freq_phase', # 'cpp_genetic_amp_freq_phase' 'nlopt_amplitudes_freqs_phases', #'', # 'genetic_omny_frequencies', 'tpe', 'atpe'
                                 amplitudes_inizialization_type = "all_equal_middle_value", # "random", "all_equal_middle_value", "transform_amplitudes"
                                 frequencies_ft = True,
@@ -5462,30 +5390,18 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         lookback_periods : int
             Number of bars before ``current_date`` considered for incremental
             processing.
-        source_type : Drive
-            Legacy storage selector. Static analysis marks it as unused in the
-            current implementation.
         retrieve_pars_from_file, optimized_pars_filepath : optional
             Parameters for workflows that derive cycle parameters from an
             optimization file.
         min_period, max_period : int, optional
             Optional filter bounds for retrieved optimization parameters.
-        data_column_name : str, default "Close"
-            Legacy argument retained for compatibility; current downstream
-            calls are effectively hard-coded to close-price analysis.
         population_n, CXPB, MUTPB, NGEN : int or float
             Optimizer controls passed through to per-date analysis.
         resume : bool, default False
             If true and the target CSV exists, load it and process only missing
             dates.
-        GoogleDriveMountPoint : str
-            Legacy Colab/Drive parameter. Static analysis marks it as unused in
-            the current implementation.
         file_path, file_name : str
             Output CSV location. They are concatenated into ``file_path_name``.
-        index_column_name : str, default "datetime"
-            Legacy CSV-index parameter. Current resume loading parses
-            ``datetime`` directly.
         opt_algo_type, amplitudes_inizialization_type, frequencies_ft, phases_ft,
         detrend_type, cut_to_date_before_detrending, linear_filter_window_size_multiplier,
         period_related_rebuild_range, period_related_rebuild_multiplier,
@@ -5580,8 +5496,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                   data_column_name = 'Close',
                                                   current_date = date_str, #'2024-01-18',
                                                   periods_pars = cycles_parameters,
-                                                  pars_from_opt_file = False,
-                                                  files_path_name = None,
                                                   population_n = population_n,
                                                   CXPB = CXPB,
                                                   MUTPB = MUTPB,
@@ -5590,9 +5504,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                   MultiAn_fitness_type_svg_smoothed = False,
                                                   MultiAn_fitness_type_svg_filter = 4,
                                                   reference_detrended_data = "less_detrended", # longest less_detrended
-                                                  bb_delta_fixed_periods = [8, 16],
-                                                  bb_delta_sg_filter_window = None,
-                                                  RSI_cycles_analysis_type = 'original_RSI', #'SG_smooted_RSI' # 'original_RSI',
                                                   opt_algo_type = opt_algo_type,
                                                   detrend_type = detrend_type, #hp_filter linear
                                                   linear_filter_window_size_multiplier = linear_filter_window_size_multiplier,
