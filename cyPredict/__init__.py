@@ -1310,17 +1310,17 @@ class cyPredict:
 #             time_zone = timezone(time_zone)
 
 
-        # Original_data index type conversion to DateTime
+        # Normalize the working index before any date slicing.
         original_data.index = pd.to_datetime(original_data.index)
         original_data = original_data.sort_index()
 
 
 
         # ------------------------------------------------------
-        #      provided current date and num of samples
+        # Select the analysis window ending at current_date
         # ------------------------------------------------------
 
-        # Find first element of the freqnecy transofrmation range
+        # Common notebook path: current_date + num_samples define the window.
         if((current_date != None)  & (num_samples != None)):
 
 
@@ -1336,10 +1336,10 @@ class cyPredict:
 #             print(f"----->IN analyze_and_plot, original_data.index.tz {original_data.index.tz}")
 
             if original_data.index.tz is not None:
-                # Se l'indice è timezone-aware, usa il suo timezone per convertire current_date
+                # Match current_date to the timezone already used by the data.
                 current_date = pd.Timestamp(current_date).tz_convert(original_data.index.tz)
             else:
-                # Altrimenti, localizza current_date senza timezone
+                # Keep daily/timezone-naive data timezone-naive.
                 current_date = pd.Timestamp(current_date).tz_localize(None)
                 
 #             print(f"current_date after: {current_date}")
@@ -1354,7 +1354,7 @@ class cyPredict:
 
                 filtered_data_cd = original_data[original_data.index.date == current_date.date()]
 
-            # Find element with highest time within current date
+            # Use the latest available timestamp not after current_date.
             if not filtered_data_cd.empty:
 
 
@@ -1409,11 +1409,11 @@ class cyPredict:
 
 
         # ------------------------------------------------------
-        #      Data preparation
+        # Prepare frequency grid and detrended input series
         # ------------------------------------------------------
 
 
-        # Transform frequencies range
+        # Build the normalized frequency search grid from the period bounds.
         if(min_period != None):
             max_frequency = int((num_samples / min_period) * 2)
         else:
@@ -1427,15 +1427,14 @@ class cyPredict:
 
         frequency_range = np.arange(transform_precision, max_frequency, transform_precision)
 
-        # Specific data column
+        # Keep the selected price column as the transform input.
         data = data[data_column_name].values
 
         # print('\n Data: ' + str(data[-20:]))
 
-# MODIFICA DETRENDED 1: usare dati non tagliati, original_data invece di data
+# Detrending intentionally uses original_data so the chosen cut policy is explicit.
 
-        # Replace Nan before detrending otherwise some detrending functions
-        # will return a entire set of Nan
+        # Replace NaN values before detrending; several filters propagate them.
 
         original_data[data_column_name] = original_data[data_column_name].fillna(0)
 
@@ -1451,7 +1450,7 @@ class cyPredict:
 
         # display(detrending_data.tail(20))
         
-        # Type of detrend technique
+        # Select the detrending branch without altering the transform path.
         if(detrend_type == 'linear'):
             print(f'linear detrend, detrend window = {detrend_window}')
             print(f'len orginal_data[data_column_name] = {len(original_data[data_column_name])}')
@@ -1495,11 +1494,11 @@ class cyPredict:
 
 
         # ------------------------------------------------------
-        #      Goertzel DFT calculation
+        # Run Goertzel transform over candidate frequencies
         # ------------------------------------------------------
 
 
-        # Classic Goertzel DFT
+        # Store amplitude, phase and offset metadata for each candidate.
         harmonics_amplitudes = []
         phases = []
         minoffset = []
@@ -1536,7 +1535,7 @@ class cyPredict:
         harmonics_amplitudes = np.array(harmonics_amplitudes)
         phases = np.array(phases)
  
-        # Amplitude peaks extraction
+        # Extract local maxima from the amplitude spectrum.
         goertzel_df_peaks = pd.DataFrame()
         peaks_indexes = argrelmax(harmonics_amplitudes, order = 10)[0] # find indexes of peaks
 
@@ -1548,7 +1547,7 @@ class cyPredict:
         peak_next_max_offset = np.array(maxoffset)[peaks_indexes]
 
 
-        # Amplitude scaling with respect to the frequency for dominant circles determination
+        # Frequency-scaled amplitudes are used for dominant-cycle ranking.
         scaled_peak_amplitudes = peak_amplitudes*peak_frequencies
         scaled_harmonics_amplitudes = harmonics_amplitudes*frequency_range
 
@@ -1571,10 +1570,10 @@ class cyPredict:
             
             
         # ------------------------------------------------------
-        #      Limit the considered original harmonics
+        # Restrict harmonic candidates to the requested period range
         # ------------------------------------------------------
-        # Keep harmonics with period within min_period and max_period or the first
-        # final_kept_n_dominant_circles ones
+        # Keep either an explicit number of harmonics or all peaks inside
+        # min_period..max_period.
         cut_peaks_indexes = []
 
         # print(f'\t\t\t\tlen peaks_indexes: {peaks_indexes}')
@@ -1615,7 +1614,7 @@ class cyPredict:
         
 
         # ------------------------------------------------------
-        #      Bartel peak scores
+        # Apply optional Bartels-style peak filtering
         # -----------------------------------------------------
 
         temp_filtered_f_indexes = np.array([], dtype=int)
@@ -1649,7 +1648,7 @@ class cyPredict:
 
 
         # ------------------------------------------------------
-        #      Other Correlations
+        # Compute optional correlation features for peak scoring
         # -----------------------------------------------------
 
         if(other_correlations == True):
@@ -1683,10 +1682,7 @@ class cyPredict:
                 averages = pd.DataFrame()
 
 
-                # -------------------------------------------------------------
-                #         Correlation between current scaled harmonic and
-                #         scaled delta of long an short savgol_filtered signal
-                # -------------------------------------------------------------
+                # Compare the harmonic with the Savitzky-Golay delta proxy.
 
                 if(debug == True):
                     print("Other correlations, period: " + str(period))
@@ -1717,13 +1713,7 @@ class cyPredict:
             if(time_tracking):
                 self.track_time('\tPartial time Other Correlations')      
 
-            # ------------------------------------------------------------------------------------
-            #         Peaks cardinality error between
-            #         current scaled harmonic and scaled_savgol_filter_delta_correlation
-            # -------------------------------------------------------------------------------------
-
-
-            # Peaks cardinality coherence and peak phase error between current scaled harmonic and scaled_average_delta
+            # Measure peak-count coherence against the Savitzky-Golay delta proxy.
             if(int(period/2) < 2):
                 peaks_tollerance = 1
             else:
@@ -1745,10 +1735,7 @@ class cyPredict:
                 self.track_time('\tPartial time Partial time Peaks cardinality Error calculation')   
 
 
-            # -------------------------------------------------------------------------
-            #         Correlation between current scaled harmonic and
-            #         scaled delta derivate of long an short savgol_filtered signal
-            # -------------------------------------------------------------------------
+            # Compare the harmonic with the derivative of the delta proxy.
             averages['scaled_savgol_filter_delta_derivate'] = averages.diff()['scaled_savgol_filter_delta'] #averages['scaled_average_delta'].values - averages['scaled_average_delta'].shift(1).values #averages['scaled_average_delta'].diff()
             averages['scaled_savgol_filter_delta_derivate'] = averages['scaled_savgol_filter_delta_derivate'].fillna(0)
             signal['scaled_signal_derivate'] =  signal.diff()['scaled_signal'] #signal['scaled_signal'].values - signal['scaled_signal'].shift(1).values #signal['scaled_signal'].diff()
@@ -1761,17 +1748,14 @@ class cyPredict:
                 self.track_time('\tPartial time Partial time Correlation between scaled harmonic and ascled delta')   
 
 
-            # ----------------------------------------------------------
-            #         Peaks phase error between current scaled harmonic
-            #         and scaled_savgol_filter_delta_correlation
-            # -----------------------------------------------------------
+            # Measure nearest-peak phase error between harmonic and proxy.
 
-            # Initialize a list to store the differences between the indices
+            # Store paired peak-index differences before RMSE normalization.
             differences = []
 
             if(len(scaled_savgol_filter_delta_max_peaks_indexes) > 0 and len(signal_max_peaks_indexes) > 0):
 
-                # find series with more max peaks
+                # Use the denser max-peak set as the reference series.
                 if(len(scaled_savgol_filter_delta_max_peaks_indexes) >= len(signal_max_peaks_indexes)):
                     peak_indices_series1 = scaled_savgol_filter_delta_max_peaks_indexes
                     peak_indices_series2 = signal_max_peaks_indexes
@@ -1779,16 +1763,16 @@ class cyPredict:
                     peak_indices_series1 = signal_max_peaks_indexes
                     peak_indices_series2 = scaled_savgol_filter_delta_max_peaks_indexes
 
-                # For each max peak in the first series, find the nearest peak in the second series
+                # Pair each reference max peak with the nearest comparison peak.
                 for peak_index_series1 in peak_indices_series1:
                     differences_peak = np.abs(peak_index_series1 - peak_indices_series2)
                     nearest_peak_index = peak_indices_series2[np.argmin(differences_peak)]
                     differences.append(peak_index_series1 - nearest_peak_index)
 
-            # find series with more min peaks
+            # Use the denser min-peak set as the reference series.
             if(len(scaled_savgol_filter_delta_min_peaks_indexes) > 0 and len(signal_min_peaks_indexes) > 0):
 
-                # find series with more min peaks
+                # Select the denser min-peak series.
                 if(len(scaled_savgol_filter_delta_min_peaks_indexes) >= len(signal_min_peaks_indexes)):
                     peak_indices_series1 = scaled_savgol_filter_delta_min_peaks_indexes
                     peak_indices_series2 = signal_min_peaks_indexes
@@ -1796,20 +1780,20 @@ class cyPredict:
                     peak_indices_series1 = signal_min_peaks_indexes
                     peak_indices_series2 = scaled_savgol_filter_delta_min_peaks_indexes
 
-                # For each min peak in the first series, find the nearest peak in the second series
+                # Pair each reference min peak with the nearest comparison peak.
                 for peak_index_series1 in peak_indices_series1:
                     differences_peak = np.abs(peak_index_series1 - peak_indices_series2)
                     nearest_peak_index = peak_indices_series2[np.argmin(differences_peak)]
                     differences.append(peak_index_series1 - nearest_peak_index)
 
             if(len(differences) > 0):
-            # Calculate the root mean square error of the differences
+                # Convert peak-index distances to an RMSE score.
                 root_mean_square_error = np.sqrt(np.mean(np.array(differences) ** 2))
 
             else:
                 root_mean_square_error = period
 
-            # Normalize with respect to the period length
+            # Normalize the peak-phase error by the cycle period.
             root_mean_square_error = root_mean_square_error / period
 
             goertzel_df_peaks.loc[goertzel_df_peaks['peaks_indexes'] == index, 'scaled_signal_vs_scaled_savgol_filter_delta_peaks_phase_RMSE'] = root_mean_square_error
@@ -1822,7 +1806,7 @@ class cyPredict:
             self.track_time('\tPartial time error between current scaled harmonic and scaled_savgol_filter_delta_correlation')   
 
         # ------------------------------------------------------
-        #         Calculate Cycles Global Scoring
+        # Build the global score used to rank candidate cycles
         # ------------------------------------------------------
 
         if(bartel_peaks_filtering == True and bartel_scoring_threshold > 0):
@@ -1854,7 +1838,7 @@ class cyPredict:
             self.track_time('\tPartial time Cicle Global Scoring calculation')   
 
         # ------------------------------------------------------
-        #      Dominant peaks sorting
+        # Select the dominant peaks used for signal reconstruction
         # -----------------------------------------------------
 
         dominant_peak_frequencies = frequency_range[dominant_peaks_indexes]
@@ -1894,7 +1878,7 @@ class cyPredict:
         used_indexes = sorted_dominant_peaks_indexes[0:final_kept_n_dominant_circles]
 
 
-        # Final kept dominant cicles
+        # Keep only the selected dominant-cycle indexes.
         kept_dominant_peak_frequencies = frequency_range[used_indexes]
         kept_dominant_peak_periods = 1 / frequency_range[used_indexes]
         kept_dominant_peak_amplitudes = harmonics_amplitudes[used_indexes]
@@ -1916,7 +1900,7 @@ class cyPredict:
             self.track_time('\tPartial time Dominants Peaks Sorting')   
 
         # ------------------------------------------------------
-        #         Dominant Circle Calibrated Standard Indicators
+        # Derive the dominant period used by indicator proxy columns
         # ------------------------------------------------------
 
         rebuilt_sig_left_zeros = np.zeros(start_rebuilt_signal_index )
@@ -1951,7 +1935,7 @@ class cyPredict:
             self.track_time('\tPartial time Dominant Circle Calibrated Standard Indicator')   
             
         # ------------------------------------------------------
-        #         Averages Delta
+        # Build centered moving-average delta proxy
         # -----------------------------------------------------
 
         data_subset_for_average = original_data[start_rebuilt_signal_index:index_of_max_time_for_cd]
@@ -1973,7 +1957,7 @@ class cyPredict:
 
 
         # ------------------------------------------------------
-        #         scaled_savgol_filter_delta
+        # Build Savitzky-Golay delta proxy
         # -----------------------------------------------------
 
 
@@ -1994,7 +1978,7 @@ class cyPredict:
 
             
         # ----------------------------------------------------------
-        #         Dominant Cicles Signal - single and composite
+        # Rebuild individual dominant cycles and their composite signal
         # ----------------------------------------------------------
 
         time = np.linspace(0, num_samples*2, num_samples*2, endpoint=False)
@@ -2062,7 +2046,7 @@ class cyPredict:
         signals_results['dominant_peaks_signals'] = signals
         
 
-         # Composite dominant sin cycles signal
+        # Rebuild the combined dominant-cycle signal on the same horizon.
         signal, extension_periods = self.rebuilt_signal_zeros(signal = composite_dominant_cycle_signal,
                                            start_rebuilt_signal_index = start_rebuilt_signal_index,
                                            data = original_data)
@@ -2083,17 +2067,17 @@ class cyPredict:
 
 
         # ------------------------------------------------------
-        #         Detrended Data
+        # Attach detrended and rebuilt columns back to original_data
         # ------------------------------------------------------
 
 
         new_columns['detrended'] = detrended_data
 
 
-        # Trova la lunghezza massima delle liste non vuote
+        # Use original_data as the alignment length for generated columns.
         max_len = len(original_data)
         
-        # Riempie le colonne più corte con NaN
+        # Pad shorter generated columns with NaN before dataframe assembly.
         for key in new_columns:
 
             col_len = len(new_columns[key])
@@ -2101,44 +2085,44 @@ class cyPredict:
 
                 add_len = max_len - col_len
         
-                # Create a Series with NaNs to append
+                # Create a Series with NaNs to append.
                 new_nans = pd.Series([np.nan] * add_len, index=range(col_len, max_len))
 
-                # Use pd.concat to append NaNs to the existing Series
+                # Use pd.concat to append NaNs to the existing Series.
                 new_columns[key] = pd.concat([new_columns[key], new_nans])        
 
 
         new_data = pd.DataFrame(new_columns)   
 
-        # Ottieni la data dalla prima riga di new_data e converti in datetime
+        # Align generated rows to original_data using the first generated index.
         first_date = pd.to_datetime(new_data.index[0], errors='coerce')
 
-        # Uniforma il fuso orario in base a original_data
+        # Match timezone handling to original_data before locating rows.
         if original_data.index.tz is None:
             first_date = first_date.tz_localize(None)
         else:
             first_date = first_date.tz_convert(original_data.index.tz)
 
-        # Trova l'indice corrispondente in original_data basandoci sul valore convertito
+        # Copy generated columns into the matching original_data slice.
         if first_date in original_data.index:
             start_index = original_data.index.get_loc(first_date)
             end_index = min(start_index + len(new_data), len(original_data))
 
-            # Aggiungi le colonne mancanti in original_data se non esistono
+            # Add generated columns that do not exist yet.
             missing_cols = [col for col in new_data.columns if col not in original_data.columns]
             for col in missing_cols:
                 original_data[col] = np.nan
 
-            # Assegna i valori di new_data in original_data nel range calcolato
+            # Reindex generated data onto the expected target rows.
             matching_rows = original_data.index[start_index:end_index]
             available_rows = matching_rows.intersection(new_data.index)
             new_data_aligned = new_data.reindex(available_rows)
 
-            # Crea un DataFrame con tutte le righe attese, anche se mancanti
+            # Preserve all expected rows even when some generated rows are absent.
             new_data_final = pd.DataFrame(index=matching_rows, columns=new_data.columns)
             new_data_final.update(new_data_aligned)
 
-            # Applica solo se matching_rows sono contenuti in original_data
+            # Apply only rows that are present in original_data.
             existing_rows = matching_rows.intersection(original_data.index)
 
             if not existing_rows.empty:
@@ -2160,7 +2144,7 @@ class cyPredict:
         # display(original_data.tail(10))
 
         # ------------------------------------------------------
-        #         scaled_savgol_filter_delta
+        # Refresh the Savitzky-Golay delta column after alignment
         # -----------------------------------------------------
 
         long_scaled_savgol_filter = savgol_filter(data_df[data_column_name], int(dominant_period*2), 2)
@@ -2183,7 +2167,7 @@ class cyPredict:
 
 
         # ------------------------------------------------------
-        #         Print Data results
+        # Optional notebook report
         # ------------------------------------------------------
 
         if(print_report == True):
@@ -2212,16 +2196,16 @@ class cyPredict:
 
 
         # ------------------------------------------------------
-        #         Charting
+        # Optional Plotly diagnostics
         # ------------------------------------------------------
 
 
         if(show_charts == True):
 
-            # Parameters
+            # Spectrum chart.
             basic_rows_n = 2
 
-            # Generalized Goertzel Transform Spectrum Chart
+            # Plot scaled peak amplitudes across detected periods.
             spectrum_trace = go.Scatter(x=frequency_range, y=harmonics_amplitudes, mode='lines', name='Goetzel DFT Spectrum')
             fig_spectrum = go.Figure(spectrum_trace)
             fig_spectrum.update_layout(title="Frequency Spectrum", xaxis=dict(title="Frequency"), yaxis=dict(title="Magnitude"))
@@ -2229,7 +2213,7 @@ class cyPredict:
             fig_spectrum.show()
 
 
-            # Original data, detrended, dominant circles signal, averages delta
+            # Price, detrended signal and dominant-cycle reconstruction.
             fig = make_subplots(rows=basic_rows_n, cols=1, shared_xaxes=True, vertical_spacing=0.05, subplot_titles=("Original Data", "Detrended Data", "Dominant Circles Signal", "Centered Averages Delta"))
 
 
@@ -2240,7 +2224,7 @@ class cyPredict:
                         row=1,
                         col=1)
 
-            # Add a vertical line spanning the height of the chart
+            # Mark the analysis anchor date.
             fig.add_shape(
                 type='line',
                 x0=index_of_max_time_for_cd,
@@ -2251,7 +2235,7 @@ class cyPredict:
                 row=1, col=1
             )
             
-            # Normalizzazione tra -1 e 1
+            # Normalize the composite signal for visual comparison.
             scaler = MinMaxScaler(feature_range=(-1, 1))
             normalized_detrended = scaler.fit_transform(original_data['detrended'].values.reshape(-1, 1)).flatten()
             normalized_composite_circles = scaler.fit_transform(original_data['composite_dominant_circles_signal'].values.reshape(-1, 1)).flatten()
@@ -2269,7 +2253,7 @@ class cyPredict:
 
 
 
-            # Add a vertical line spanning the height of the chart
+            # Mark the analysis anchor date on the reconstruction subplot.
             fig.add_shape(
                 type='line',
                 x0=index_of_max_time_for_cd,
@@ -2286,7 +2270,7 @@ class cyPredict:
 
             fig.update_xaxes(type="category")
 
-            # Visualizza il secondo grafico con i subplot
+            # Display the diagnostic subplot figure.
             fig.show()
 
 
@@ -2509,7 +2493,7 @@ class cyPredict:
             self.track_time('1. multiperiod_analysis: entering for loop, start calling analyze_and_plot')
             
 
-        # Calcolo del dataset ridotto
+        # Optionally reduce the dataframe before single-range detrending.
         original_data = self.data  # non modificato
             
         if cut_to_date_before_detrending:
@@ -2621,20 +2605,20 @@ class cyPredict:
 
 
         # ---------------------------------------------------------------
-        #       Re-Factorize Cyrcles Amplitude
+        # Build the multi-range reference signal and cycle table
         # ---------------------------------------------------------------
         if(self.print_activity_remarks):
             print('\nRe-Factorization of Cyrcles Amplitude')        
             self.track_time('\n2. multiperiod_analysis: starting Re-Factorize Cyrcles Amplitude')
-# qui qui
-        # find index of analysis with higest HP lambda value, keep its detrended signal
+
+        # Select the reference detrended series for optimizer fitness.
         if(reference_detrended_data == "less_detrended"):
             if(detrend_type == 'hp_filter'):
                 index_detrended_data = max(range(len(configurations_series)), key=lambda i: configurations_series[i]['hp_filter_lambda'])
             if(detrend_type == 'lowess'):
                 index_detrended_data = max(range(len(configurations_series)), key=lambda i: (configurations_series[i]['lowess_k'] * configurations_series[i]['max_period']))
 
-        # find index of analysis with highest number of considered samples, keep its detrended signal
+        # Alternative reference: use the longest single-range analysis.
         if(reference_detrended_data == "longest"):
             index_detrended_data = max(range(len(configurations_series)), key=lambda i: configurations_series[i]['num_samples'])
             
@@ -2651,7 +2635,7 @@ class cyPredict:
         self.MultiAn_reference_detrended_data = scaler.fit_transform( self.MultiAn_reference_detrended_data.values.reshape(-1, 1)).flatten() * 100
 
 
-        # find min and max values of detrended signal
+        # Store scaled detrended bounds for optimizer amplitude limits.
         self.MultiAn_detrended_max = np.int64(self.MultiAn_reference_detrended_data.max())
         self.MultiAn_detrended_min = np.int64(self.MultiAn_reference_detrended_data.min())
         
@@ -2660,7 +2644,7 @@ class cyPredict:
 #         print(f"self.MultiAn_reference_detrended_data.max() {self.MultiAn_reference_detrended_data.max()}")
 
         
-        # RESET for new analysis to skip values of past ones
+        # Reset the dominant-cycle table so previous runs cannot leak in.
         self.MultiAn_dominant_cycles_df = pd.DataFrame({
             'peak_frequencies': pd.Series(dtype='float64'),
             'peak_periods': pd.Series(dtype='float64'),
@@ -2700,7 +2684,7 @@ class cyPredict:
                 
             
         
-        # descending order to simplify possible segmented best amplitudes search
+        # Sort long periods first; several refit branches rely on this order.
         self.MultiAn_dominant_cycles_df = self.MultiAn_dominant_cycles_df.sort_values(by='peak_periods', ascending=False)
 
         cycles_n = len(self.MultiAn_dominant_cycles_df )
@@ -2714,7 +2698,7 @@ class cyPredict:
         
 
         # -------------------------------------------------------
-        # USE GOERTZEL FOR FINDING BEST AMPLITUDES
+        # Re-estimate amplitudes with Goertzel on the reference signal
         # -------------------------------------------------------
         
         if(self.print_activity_remarks):
@@ -2758,7 +2742,7 @@ class cyPredict:
         
         
         # -------------------------------------------------------------------
-        # OPTIMIZE SINGLE FREQUENCY IN ADDITION STARTING FROM SLOWER ONES
+        # Amplitude-only sweep, processing slower cycles first
         # -------------------------------------------------------------------
         if(opt_algo_type == 'mono_frequency'):
             
@@ -2775,14 +2759,14 @@ class cyPredict:
 
            
             
-            # loop on periods descending ordered
+            # Iterate periods in descending order.
             for index, row in self.MultiAn_dominant_cycles_df.iterrows():
                 
                 comparision_length = int(2.5 * row['peak_periods']) # comparision length
                 length = (len_series - row['start_rebuilt_signal_index'])
                 start_comparison_index = len_series - comparision_length
                 
-                # loop on possible amplitudes descending order
+                # Sweep candidate amplitudes in descending order.
                 for temp_amp in np.arange(self.MultiAn_detrended_max, 0, -0.01):                    
                     
                     
@@ -2803,12 +2787,12 @@ class cyPredict:
                     last_error = error
                     
                     
-                # add the best amplitude for this period on the reuilding domainant cycles signal
+                # Store the best amplitude found for this cycle.
                 amplitudes.append(best_amplitude)
                 best_fitness_value = best_error
                 print('Period ' + str(row['peak_periods']) + f', best amplitude {best_amplitude}, best_fitness_value {best_fitness_value}')
                 
-                # add the last cycle with best amplitude to the composite signal
+                # Add this cycle to the cumulative rebuilt signal.
                 composite_dominant_cycle_signal = composite_dominant_cycle_signal + temp_rebuilt_signal
            
             if(self.print_activity_remarks):    
@@ -2816,9 +2800,8 @@ class cyPredict:
                 print(amplitudes)
             
         # -------------------------------------------------------
-        # USE DEAP GENETIC LIBRARY FOR FINDING BEST AMPLITUDES
+        # DEAP optimizer for amplitudes and optional frequency/phase tuning
         # -------------------------------------------------------
-        # # 'genetic_omny_frequencies', 'genetic_frequencies_ranges','mono_frequency'
         
         elif(opt_algo_type == 'genetic_omny_frequencies'):
 
@@ -2832,15 +2815,15 @@ class cyPredict:
             self.track_time('\n6. Genetics algo for best amplitudes identification, start inizializing')
     
 
-            # Crea il creator per il tipo di fitness (massimizzazione di var1 e minimizzazione di var2 e var3)
+            # Register DEAP fitness type once per process.
             if 'FitnessMulti' not in creator.__dict__:
                 creator.create("FitnessMulti", base.Fitness, weights=(weigth,)) # loss are always negative so they must be maximized
 
-            # Crea il creator per un individuo (una lista di parametri)
+            # Register DEAP individual type once per process.
             if 'Individual' not in creator.__dict__:
                 creator.create("Individual", list, fitness=creator.FitnessMulti)
 
-            # Inizializzazione della popolazione e delle operazioni genetiche
+            # Configure individual creation, evaluation, crossover and mutation.
             toolbox = base.Toolbox()
             toolbox.register("individual", tools.initIterate, creator.Individual, self.MultiAn_initializeIndividual)
             toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -2912,7 +2895,7 @@ class cyPredict:
 
             if( enabled_multiprocessing == True):
                 
-                # Set the multiprocessing start method to 'spawn'
+                # Use spawn on Windows before registering pool.map.
                 if multiprocessing.get_start_method() != 'spawn':
                     multiprocessing.set_start_method('spawn')
 
@@ -2923,7 +2906,7 @@ class cyPredict:
                 toolbox.register("map", pool.map)
 
 
-            # Create the initial population
+            # Create the initial population.
             population = toolbox.population(n=population_n)
             
             self.track_time('6. Genetics algo for best amplitudes identification, end inizialization')
@@ -2989,7 +2972,7 @@ class cyPredict:
 
 
         # -----------------------------------------------------------------------------------
-        # USE cyGAopt FOR FINDING BEST AMPLITUDES, FREQUENCIES AND PHASES
+        # C++ genetic optimizer for amplitudes and optional frequency/phase tuning
         # -----------------------------------------------------------------------------------
 
         elif opt_algo_type == 'cpp_genetic_amp_freq_phase':
@@ -3017,7 +3000,7 @@ class cyPredict:
 
             initial_vector = []
             
-            # Ampiezze
+            # Amplitudes.
             if amplitudes_inizialization_type == "random":
                 initial_random_amplitudes = True
                 initial_vector += amp_init.tolist()  # placeholder, saranno ignorate nel cpp
@@ -3036,18 +3019,18 @@ class cyPredict:
             else:
                 raise ValueError(f"Invalid amplitudes_inizialization_type: {amplitudes_inizialization_type}")
             
-            # Frequenze
+            # Frequencies.
             # if self.frequencies_ft:
             initial_vector += freq_init.tolist()
             
-            # Fasi
+            # Phases.
             # if self.phases_ft:
             initial_vector += phase_init.tolist()
 
                 
             gene_length = len(initial_vector)
         
-            # ⚠️ Costruisci vincoli
+            # Build optimizer bounds in the same order as initial_vector.
             detrended_abs_max = abs(self.MultiAn_detrended_max - self.MultiAn_detrended_min)
             amp_min = [0.0] * n_cycles
             amp_max = [detrended_abs_max] * n_cycles
@@ -3102,7 +3085,7 @@ class cyPredict:
 
 
                 if self.period_related_rebuild_range:
-                    # Usa la porzione recente calcolata rispetto al ciclo più lungo (frequenza minima)
+                    # Compare only the recent segment implied by the longest cycle.
                     min_freq = self.MultiAn_dominant_cycles_df["peak_frequencies"].min()
                     peak_period = 1.0 / min_freq
                     period_related_rebuild_index = len(self.MultiAn_reference_detrended_data) - int(peak_period * self.period_related_rebuild_multiplier)
@@ -3224,7 +3207,7 @@ class cyPredict:
 
 
         # -----------------------------------------------------------------------------------
-        # USE NLopt FOR FINDING BEST AMPLITUDES, FREQUENCIES AND PHASES
+        # NLopt optimizer for amplitudes and optional frequency/phase tuning
         # -----------------------------------------------------------------------------------
 
         elif(opt_algo_type == 'nlopt_amplitudes_freqs_phases'):
@@ -3263,23 +3246,23 @@ class cyPredict:
 
 
         # -------------------------------------------------------------------------------------------------------------------------
-        # USE TPE ALGORITHMS FOR FINDING BEST AMPLITUDES AND OPTIONALLY FINE TUNING OF FREQUENCIES AND PHASES
+        # Hyperopt TPE/ATPE optimizer for amplitudes and optional frequency/phase tuning
         # -------------------------------------------------------------------------------------------------------------------------
 
         elif(opt_algo_type ==  'tpe' or opt_algo_type ==  'atpe'):
 
             from hyperopt import STATUS_OK  # può anche stare fuori dalla funzione una volta sola
 
-            # Funzione obiettivo da massimizzare
+            # Hyperopt minimizes loss, so the objective returns the fitness loss.
             def objective(params):
                 individual = []
                 n_cycles = len(self.MultiAn_dominant_cycles_df)
             
-                # Ampiezze sempre incluse
+                # Amplitudes are always part of the optimization vector.
                 amplitude_values = [params[f'amplitude_{i}'] for i in range(n_cycles)]
                 individual.extend(amplitude_values)
             
-                # Frequenze opzionali
+                # Frequencies are included only when enabled for this run.
                 if self.frequencies_ft:
                     frequency_values = [params[f'frequency_{i}'] for i in range(n_cycles)]
                     individual.extend(frequency_values)
@@ -3287,7 +3270,7 @@ class cyPredict:
                 else:
                     self.MultiAn_dominant_cycles_df['frequency'] = self.MultiAn_dominant_cycles_df['peak_frequencies']
             
-                # Fasi opzionali
+                # Phases are included only when enabled for this run.
                 if self.phases_ft:
                     phase_values = [params[f'phase_{i}'] for i in range(n_cycles)]
                     individual.extend(phase_values)
@@ -3300,14 +3283,14 @@ class cyPredict:
                 
                 # return fitness
 
-                # ✅ Calcolo fitness usando return_list_type=True per ottenere una tupla (val,)
+                # Keep return_list_type=True because MultiAn_evaluateFitness returns a tuple.
                 fitness = self.MultiAn_evaluateFitness(individual, return_list_type=True)
             
-                # ✅ Formato richiesto da hyperopt
+                # Hyperopt requires a dict with loss and status.
                 return {"loss": float(fitness[0]), "status": STATUS_OK}
 
 
-            # Definizione dello spazio dei parametri da ottimizzare
+            # Define the Hyperopt search space in vector order.
             # space = {f'amplitude_{i}': hp.uniform(f'amplitude_{i}', low_series[i], up_series[i]) for i in range(len(low_series))}
             space = {f'amplitude_{i}': hp.uniform(f'amplitude_{i}', low_series[i], up_series[i]) for i in range(len(low_series))}
 
@@ -3326,7 +3309,7 @@ class cyPredict:
                 space.update({f'phase_{i}': hp.uniform(f'phase_{i}', phase_low[i], phase_up[i]) for i in range(len(phase_low))})
 
 
-            # Ottimizzazione con TPE
+            # Run the selected Hyperopt algorithm.
             if(opt_algo_type ==  'tpe'):
                 best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=NGEN)
 
@@ -3335,7 +3318,7 @@ class cyPredict:
 
 
 
-            # Estrai i migliori valori degli amplitudes
+            # Copy the best parameter values back into the dominant-cycle table.
             n = len(self.MultiAn_dominant_cycles_df)
             amplitudes = [best[f'amplitude_{i}'] for i in range(n)]
             self.MultiAn_dominant_cycles_df['best_amplitudes'] = amplitudes
@@ -3357,7 +3340,7 @@ class cyPredict:
 
 
 
-            # Calcola il miglior fitness e aggiorna la struttura dati
+            # Re-evaluate the best point and store the resulting fitness.
             best_fitness_value = objective(best)
             self.MultiAn_dominant_cycles_df['best_fitness'] = best_fitness_value
 
@@ -3372,7 +3355,7 @@ class cyPredict:
 
 
         # -----------------------------------------------------------------------
-        #                       CREATE COMPOSITE SIGNALS
+        # Create composite signals from optimized cycle parameters
         # -----------------------------------------------------------------------
 
         if(self.print_activity_remarks):
@@ -3382,13 +3365,10 @@ class cyPredict:
         temp_circle_signal = []
         composite_dominant_cycle_signal = []
 
-        # the portion of new wave will be long twice the longest considered portion of detrended signal
-        # to cover it and an equal length of future projection
+        # Projection length follows the longest generated single-range output.
         len_series = len(self.data) #len(self.MultiAn_reference_detrended_data)
 
-        # the global length of the series containing the dominant cycles will be long as the original data
-        # plus the projection. The Projection will be long as much as the portion of elaboration of the
-        # longest start_rebuilt_signal_index
+        # Use the longest single-range index as the composite signal index.
         print(f"len_series {len_series}")
         print(f"len elaborated_data_series {len(elaborated_data_series)}")
         print(f"max_length_series_index {max_length_series_index}")
@@ -3435,7 +3415,7 @@ class cyPredict:
 
 
         # -------------------------------------------------
-        #               SCALED SIGNALS
+        # Scale composite and alignment signals for output
         # -------------------------------------------------
         
         if(self.print_activity_remarks):
@@ -3455,16 +3435,16 @@ class cyPredict:
         scaled_signals['scaled_composite_signal'] = scaled_composite_signal  = CDC_scaler.fit_transform( composite_signal['composite_signal'].values.reshape(-1, 1) ).flatten()
         scaled_signals['scaled_goertzel_composite_signal'] = scaled_goertzel_composite_signal = CDC_scaler.fit_transform( composite_signal['goertzel_composite_signal'].values.reshape(-1, 1) ).flatten()
         
-        # Calcola la differenza di lunghezza tra scaled_signals e detrended
+        # Align detrended values to the projected scaled-signal length.
         detrended_values = elaborated_data_series[index_detrended_data]['detrended'].values
         scaled_signals_len = len(scaled_signals['scaled_composite_signal'])  # Assumiamo che sia questa la lunghezza target
 
-        # Se detrended_values è più corto, aggiungi NaN all'inizio
+        # If the detrended reference is shorter, left-pad it with NaN.
         if len(detrended_values) < scaled_signals_len:
             num_nans_to_add = scaled_signals_len - len(detrended_values)
             detrended_values = np.concatenate([np.full(num_nans_to_add, np.nan), detrended_values])
 
-        # Assegna i valori corretti
+        # Store the aligned detrended reference.
         scaled_signals['scaled_detrended'] = scaled_detrended  = detrended_values
 
         
@@ -3484,7 +3464,7 @@ class cyPredict:
 
         print(f"BEFORE CHART PLOTTING, index_of_max_time_for_cd {index_of_max_time_for_cd}")
         # -------------------------------------------------
-        #               CHARTS PLOT
+        # Optional Plotly diagnostics
         # -------------------------------------------------
 
         if(self.print_activity_remarks):
@@ -4556,7 +4536,7 @@ class cyPredict:
         n = len(self.MultiAn_dominant_cycles_df)
         individual = []
     
-        # --- Ampiezze ---
+        # Initialize amplitudes on the configured discrete grid.
         for _ in range(n):
             individual.append(self.discretized_uniform(0.0, self.MultiAn_detrended_max))
     
@@ -4802,7 +4782,7 @@ class cyPredict:
         lb = []
         ub = []
     
-        # Ampiezze
+        # Amplitude bounds.
         for i in range(n_cycles):
             amp_min = 0
             amp_max = self.MultiAn_detrended_max
@@ -4810,7 +4790,7 @@ class cyPredict:
             lb.append(amp_min)
             ub.append(amp_max)
     
-        # Frequenze
+        # Optional frequency bounds around Goertzel estimates.
         if optimize_frequencies:
             for i in range(n_cycles):
                 base_freq = df['peak_frequencies'].iloc[i]
@@ -4820,7 +4800,7 @@ class cyPredict:
                 lb.append(lo)
                 ub.append(hi)
     
-        # Fasi
+        # Optional phase bounds around Goertzel estimates.
         if optimize_phases:
             for i in range(n_cycles):
                 base_phase = df['peak_phases'].iloc[i]
@@ -4972,7 +4952,7 @@ class cyPredict:
 #         kpi_series = pd.Series([0] * start_position)
 #         weigthed_kpi_series = pd.Series([0] * start_position)
 
-        # pre-populate first positions not used for the analysis with zeros
+        # Pre-fill positions before the first rebuildable index with zeros.
         kpi_series = pd.Series([0] * start_position, dtype=np.int64)
         weigthed_kpi_series = pd.Series([0] * start_position, dtype=np.int64)
         
@@ -4983,7 +4963,7 @@ class cyPredict:
         peaks_min_df = {} #pd.DataFrame()
         peaks_max_df = {} # pd.DataFrame()
         
-        # peaks series creation
+        # Cache extrema indexes for each component signal once.
         for column in signals.columns:
 
             peaks_min_df[column] = argrelmin(signals[column].values)[0]
@@ -5012,7 +4992,7 @@ class cyPredict:
             for column in signals.columns:
 
 #                 print('\ncolumn: ' + str(column) )
-                # Trova gli indici di tutti i minimi e massimi relativi
+                # Reuse precomputed local minima and maxima.
 #                 peaks_min = argrelmin(signals[column].values)[0]
 #                 peaks_max = argrelmax(signals[column].values)[0]
 
@@ -5022,27 +5002,27 @@ class cyPredict:
 #                 print(f'peaks_min: {peaks_min}')
 #                 print(f'peaks_max: {peaks_max}')
 
-                # Trova i minimi e massimi immediatamente precedenti a position
+                # Candidate extrema before the current position.
                 peaks_min_before = [peak for peak in peaks_min if peak < position]
                 peaks_max_before = [peak for peak in peaks_max if peak < position]
 
-                # Trova i minimi e massimi immediatamente successivi a position
+                # Candidate extrema after the current position.
                 peaks_min_after = [peak for peak in peaks_min if peak > position]
                 peaks_max_after = [peak for peak in peaks_max if peak > position]
 
-                # Trova il minimo immediatamente precedente più vicino a position
+                # Nearest previous minimum.
                 previous_peak_index_min = max(peaks_min_before) if peaks_min_before else np.nan
 
-                # Trova il massimo immediatamente precedente più vicino a position
+                # Nearest previous maximum.
                 previous_peak_index_max = max(peaks_max_before) if peaks_max_before else np.nan
 
-                # Trova il minimo immediatamente successivo più vicino a position
+                # Nearest next minimum.
                 next_peak_index_min = min(peaks_min_after) if peaks_min_after else np.nan
 
-                # Trova il massimo immediatamente successivo più vicino a position
+                # Nearest next maximum.
                 next_peak_index_max = min(peaks_max_after) if peaks_max_after else np.nan
 
-                # Scegli l'indice corretto in base alla distanza dalla posizione corrente
+                # Choose the nearest previous extrema, preserving min/max type.
                 if not pd.isnull(previous_peak_index_max) and not pd.isnull(previous_peak_index_min):
 
                     if(position - previous_peak_index_max) < (position - previous_peak_index_min):
@@ -5085,17 +5065,17 @@ class cyPredict:
 
 
                 if not pd.isnull(previous_peak_index) and not pd.isnull(next_peak_index):
-                    # Calcola la lunghezza del percorso tra i due picchi.
+                    # Total distance between the surrounding extrema.
                     path_len = next_peak_index - previous_peak_index
 
-                    # Calcola la lunghezza del percorso che rimane.
+                    # Remaining distance to the next extrema.
                     remain_len = next_peak_index - position
 
-                    # Calcola la percentuale di percorso che rimane.
+                    # Fraction of the extrema-to-extrema path still ahead.
                     percentage = remain_len / path_len
 
 
-                    # Aggiungi la percentuale al KPI finale.
+                    # Sign the KPI according to whether the previous extrema was a min or max.
                     if(previous_peak_type == 'min'):
                         kpi -= percentage
 
@@ -5558,7 +5538,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
 
 
 
-        # CREATION OF THE SEQUENCES OF VALUES TO BE TESTED ACCORDING TO THE TYPE OF DETRENDING
+        # Build optimization domains according to detrending mode.
         
         if(self.period_related_rebuild_range == True): 
 #             self.period_related_rebuild_multiplier_sequence = np.arange(2, 6.05, 0.05).tolist()
@@ -5585,7 +5565,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             print(f'hp_filter_lambda_min {hp_filter_lambda_min}')
             print(f'hp lambda logarithmic sequence: {logarithmic_sequence}')
             
-            # Variable to the specific component period rebuild range
+            # Include period-related rebuild multiplier in the search domain.
             if(self.period_related_rebuild_range == True): 
                 
                 low=[num_samples_min,
@@ -5604,7 +5584,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                     6.0
                    ]
                 
-            # Default rebuild range (equal to the frequancy transfor periods)
+            # Search only core cycle parameters when rebuild range is fixed.
             else:
             
                 low=[num_samples_min,
@@ -5623,7 +5603,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             
             self.linear_filter_window_size_multiplier_sequence = np.arange(0.5, 2.05, 0.05).tolist()
                         
-            # Variable to the specific component period rebuild range
+            # Include period-related rebuild multiplier in the linear-detrend domain.
             if(self.period_related_rebuild_range == True): 
                 
                 low=[num_samples_min,
@@ -5640,7 +5620,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                     2.0,
                     6.0]
                 
-            # Default rebuild range (equal to the frequancy transform periods)    
+            # Search only core cycle parameters when rebuild range is fixed.
             else:
                 
                 low=[num_samples_min,
@@ -5659,16 +5639,16 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
 
 
 
-        # CREATOR DEPENDING ON THE FITNESS FUNCTION TYPE 
+        # Select the DEAP fitness shape according to the objective type.
         if(fitness_function == 'trading_pl'): # 'trading_pl'
             creator.create("FitnessMulti", base.Fitness, weights=(1.0, 0.4, 0.4, 1, 1, 0.6, -0.6, 1, 1)) # loss are always negative so they must be maximized
         else: # 'mse'
             creator.create("FitnessMulti", base.Fitness, weights=(-1.0, ))
 
-        # Crea il creator per un individuo (una lista di parametri)
+        # Register DEAP individuals and genetic operators.
         creator.create("Individual", list, fitness=creator.FitnessMulti)
 
-        # Inizializzazione della popolazione e delle operazioni genetiche
+        # Configure population generation, evaluation, crossover and mutation.
         toolbox = base.Toolbox()
         toolbox.register("individual", tools.initIterate, creator.Individual, self.genOpt_initializeIndividual)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -5690,7 +5670,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         if(enabled_multiprocessing == True):
             print(f'multiprocessing.get_start_method = {multiprocessing.get_start_method()}')
 
-            # Set the multiprocessing start method to 'spawn'
+            # Use spawn on Windows before registering pool.map.
             if multiprocessing.get_start_method() != 'spawn':
                 print('Setting Spawn method')
                 multiprocessing.set_start_method('spawn')
@@ -5698,7 +5678,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             cpu_count = multiprocessing.cpu_count()
             print(f"CPU count: {cpu_count}")
 
-            # Enable multiprocessing
+            # Enable multiprocessing for fitness evaluation.
             pool = multiprocessing.Pool()
             toolbox.register("map", pool.map)
         
@@ -5707,7 +5687,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             print('Multiprocessing disabled')
 
 
-        # Create the initial population
+        # Create the initial population.
         population = toolbox.population(n=population_n)
 
 #         folder_path = self.data_storage_path 
@@ -6131,7 +6111,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         datetime_df = pd.DataFrame()
         best_fitness_value_df = pd.DataFrame()
 
-        # Ricalcola index_of_max_time_for_cd per garantire coerenza con original_data
+        # Recompute the anchor index against self.data for row-level OHLCV fields.
         max_datetime = self.data.index[self.data.index <= current_date].max()
         current_date_idx = self.data.index.get_loc(max_datetime)
 
@@ -6242,7 +6222,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         
         base_data['scaled_detrended'] = scaled_signals['scaled_detrended']
 
-        # CORREGGERE: best_fitness_value_df
+        # Assemble the wide output row in the same column order used by notebooks.
         concatenated_dataframe = pd.concat([datetime_df,
                                             best_fitness_value_df,
                                             base_data,
@@ -6349,24 +6329,24 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         
         file_path_name = file_path + file_name
         
-        # Carica il CSV esistente solo se resume == True e il file esiste
+        # Resume from an existing CSV only when explicitly requested.
         if resume and os.path.exists(file_path_name):
 #             min_max_CDC_analysis_df = pd.read_csv(file_path_name, index_col=index_column_name, parse_dates=True)
             min_max_CDC_analysis_df = pd.read_csv(file_path_name, parse_dates=['datetime'])
 
             print("File CSV esistente caricato.")
         else:
-            # Se il CSV non esiste o resume == False, crea un nuovo dataframe vuoto
+            # Start a new accumulation dataframe.
             min_max_CDC_analysis_df = pd.DataFrame()
             print("Nessun file CSV trovato o resume == False. Creazione di un nuovo dataframe.")
             
 
-        # Filtra i dati esistenti in self.data per la data corrente e un numero di righe precedenti pari a lookback_periods
+        # Limit processing to the requested lookback ending at current_date.
         if pd.to_datetime(current_date) not in self.data.index:
             print(f"Data {current_date} non trovata nei dati. Uscita.")
             return min_max_CDC_analysis_df
 
-        # Ottieni i dati necessari dal dataframe self.data
+        # Select the candidate dates to process.
         start_idx = self.data.index.get_loc(pd.to_datetime(current_date)) - lookback_periods
         if start_idx < 0:
             start_idx = 0
@@ -6377,16 +6357,16 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         
 #         print(f'Number downloaded asset records: {len(filtered_data)}')
         
-        # Filtra solo le date che non sono già presenti in min_max_CDC_analysis_df
+        # In resume mode, keep only dates not already present in the CSV.
         if not min_max_CDC_analysis_df.empty:            
 
-            # Assicurati che l'indice di min_max_CDC_analysis_df sia del tipo corretto
+            # Normalize persisted datetimes before comparing them with self.data.
             min_max_CDC_analysis_df['datetime'] = pd.to_datetime(min_max_CDC_analysis_df['datetime'], errors='coerce')
 
-            # Controlla le date che non sono già nel CSV
+            # Find dates missing from the persisted output.
             missing_dates = filtered_data.index.difference(min_max_CDC_analysis_df['datetime'])
 
-            # Seleziona solo le righe con le date mancanti
+            # Process only missing rows.
             filtered_data = filtered_data.loc[missing_dates]
 #             print(f'Number of missing dates after further filtering: {len(filtered_data)}')
 
@@ -6394,9 +6374,9 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             print("Il file CSV è vuoto, quindi tutte le date sono considerate nuove.")
 
 
-        # Esegui l'analisi su ogni nuova data usando min_max_analysis_concatenated_dataframe
+        # Build and append one wide feature row for each missing date.
         for date in filtered_data.index:
-            # Converte la data in formato "YYYY-MM-DD"
+            # Preserve timezone information when formatting the analysis date.
             # date_str = date.strftime('%Y-%m-%d')
 
             if date.tzinfo is None:
@@ -6426,7 +6406,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                 cycles_parameters = cycles_parameters.reset_index(drop=True)
                     
                 
-            # Richiama min_max_analysis_concatenated_dataframe con i parametri corretti
+            # Run the single-date min/max feature extraction.
             analyzed_row = self.min_max_analysis_concatenated_dataframe(
                                                   data_column_name = 'Close',
                                                   current_date = date_str, #'2024-01-18',
@@ -6466,16 +6446,16 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             if 'datetime' in analyzed_row.columns:
                 analyzed_row['datetime'] = pd.to_datetime(analyzed_row['datetime'], errors='coerce')
 
-            # Concatena il risultato al dataframe principale
+            # Append the new row to the accumulated dataframe.
             min_max_CDC_analysis_df = pd.concat([min_max_CDC_analysis_df, analyzed_row])
 
        
-            # Converte tutto l'indice in Timestamp per evitare conflitti tra tipi diversi
+            # Normalize timestamps before sorting/persisting.
             min_max_CDC_analysis_df = min_max_CDC_analysis_df.sort_values(by='datetime')
             min_max_CDC_analysis_df = min_max_CDC_analysis_df.drop_duplicates(subset=['datetime'], keep='first')
 
 
-            # Salva il dataframe risultante nel CSV, sovrascrivendo il file esistente
+            # Persist after each row so long runs can resume safely.
             min_max_CDC_analysis_df.to_csv(file_path_name, index=False)
             print(f"CSV aggiornato e salvato: {file_path_name}")
 
