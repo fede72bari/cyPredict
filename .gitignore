@@ -10,6 +10,7 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+.pytest_cache/
 
 # Native extension build products
 *.obj
@@ -35,4 +36,3 @@ outputs/
 .env
 .venv/
 venv/
-

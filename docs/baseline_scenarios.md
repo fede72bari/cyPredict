@@ -63,3 +63,6 @@ This document defines the first baseline tests needed before calculation cleanup
 - Numeric match: `numpy.testing.assert_allclose` with explicit tolerance.
 - Genetic path: use deterministic seed where possible; otherwise compare stable invariants and acceptable ranges until native determinism is enforced.
 
+## Tooling Added
+
+Use `scripts/capture_golden_baseline.py` with the `cyenv` interpreter to capture compact baseline summaries. Scenario JSON templates and storage notes live under `tests/golden/`.
