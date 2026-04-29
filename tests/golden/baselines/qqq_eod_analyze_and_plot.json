@@ -1,0 +1,584 @@
+{
+  "config": {
+    "constructor": {
+      "data_end_date": "2024-01-01",
+      "data_source": "yfinance",
+      "data_start_date": "2022-01-01",
+      "data_timeframe": "1d",
+      "output_clearing": false,
+      "print_activity_remarks": false,
+      "ticker": "QQQ",
+      "time_tracking": false
+    },
+    "method": "analyze_and_plot",
+    "method_kwargs": {
+      "bartel_peaks_filtering": true,
+      "bartel_scoring_threshold": 0,
+      "centered_averages": true,
+      "current_date": "2023-12-29",
+      "cut_to_date_before_detrending": true,
+      "data_column_name": "Close",
+      "debug": false,
+      "detrend_type": "hp_filter",
+      "detrend_window": 0,
+      "dominant_cicles_sorting_type": "global_score",
+      "enabled_multiprocessing": false,
+      "final_kept_n_dominant_circles": 4,
+      "hp_filter_lambda": 1600,
+      "include_calibrated_MACD": true,
+      "include_calibrated_RSI": true,
+      "indicators_signal_calcualtion": true,
+      "jp_filter_h": 100,
+      "jp_filter_p": 3,
+      "kaiser_beta": 5,
+      "limit_n_harmonics": null,
+      "lowess_k": 3,
+      "max_period": 80,
+      "min_period": 10,
+      "num_samples": 256,
+      "other_correlations": true,
+      "print_report": false,
+      "show_charts": false,
+      "start_date": null,
+      "time_tracking": false,
+      "transform_precision": 0.01,
+      "windowing": null
+    },
+    "name": "qqq_eod_analyze_and_plot"
+  },
+  "metadata": {
+    "config_sha256": "78523ecc305f92b1ea44117df7845494682c5ddfaa0829d2381dca73a75fe28c",
+    "elapsed_seconds": 11.320360300014727,
+    "generated_at": "2026-04-29T15:37:52.620164+00:00",
+    "git_commit": "b0ac713cb3cb0cdfd292d1adeafdeafec6568777",
+    "native_modules": [
+      {
+        "module": "goertzel",
+        "origin": "D:\\Dropbox\\TRADING\\TRADING PROPERTY LIBRARIES\\cyPredict\\native\\goertzel\\goertzel.cp310-win_amd64.pyd",
+        "sha256": "7682908e30383ac58dfb218a18ff7a666662bdf5991744a94d71c445382bd96b"
+      },
+      {
+        "module": "cyfitness",
+        "origin": "D:\\Dropbox\\TRADING\\TRADING PROPERTY LIBRARIES\\cyPredict\\native\\cyfitness\\cyfitness.cp310-win_amd64.pyd",
+        "sha256": "249c3cfa46a5b97d4c449c436afc1cc4d29bc8b0162da18c64a5ad602d0acde0"
+      },
+      {
+        "module": "cyGAopt",
+        "origin": "D:\\Dropbox\\TRADING\\TRADING PROPERTY LIBRARIES\\cyPredict\\native\\cygaopt\\cyGAopt.cp310-win_amd64.pyd",
+        "sha256": "2db6590dffab9a8911d7c7df12ab4e98369f7f8c9be8b646ea85d20b820bd99a"
+      },
+      {
+        "module": "cyGAoptMultiCore",
+        "origin": "D:\\Dropbox\\TRADING\\TRADING PROPERTY LIBRARIES\\cyPredict\\native\\cygaopt_multicore\\cyGAoptMultiCore.cp310-win_amd64.pyd",
+        "sha256": "4f79f14517ee9cff344866ef649db27417a0d600e25f58c1510294eb7f67ceb8"
+      },
+      {
+        "module": "talib",
+        "origin": "C:\\Users\\Federico\\anaconda3\\envs\\cyenv\\lib\\site-packages\\talib\\__init__.py",
+        "sha256": "f16063f194d9aeb4d4542ce0c01616a6b20bacffad6d99b5dec7f0e5c2994927"
+      },
+      {
+        "module": "nlopt",
+        "origin": "C:\\Users\\Federico\\anaconda3\\envs\\cyenv\\lib\\site-packages\\nlopt.py",
+        "sha256": "9e978361e0c9f1d7f0d125e95e581104a3914becb56656b3d71f52c19db5fc12"
+      }
+    ],
+    "platform": "Windows-10-10.0.19045-SP0",
+    "python": "3.10.18 | packaged by conda-forge | (main, Jun  4 2025, 14:42:04) [MSC v.1943 64 bit (AMD64)]",
+    "python_executable": "C:\\Users\\Federico\\anaconda3\\envs\\cyenv\\python.exe"
+  },
+  "result": {
+    "items": [
+      {
+        "kind": "Timestamp",
+        "value": "2023-12-29 00:00:00"
+      },
+      {
+        "kind": "int64",
+        "value": 500
+      },
+      {
+        "columns": [
+          "Close",
+          "High",
+          "Low",
+          "Open",
+          "Volume",
+          "centered_averages_delta",
+          "scaled_savgol_filter_delta",
+          "composite_dominant_circles_signal",
+          "dominant_circle_signal_period_10.369620253164557",
+          "dominant_circle_signal_period_27.089947089947092",
+          "dominant_circle_signal_period_15.681470137825421",
+          "dominant_circle_signal_period_23.67630057803468",
+          "detrended"
+        ],
+        "dtypes": {
+          "Close": "float64",
+          "High": "float64",
+          "Low": "float64",
+          "Open": "float64",
+          "Volume": "float64",
+          "centered_averages_delta": "float64",
+          "composite_dominant_circles_signal": "float64",
+          "detrended": "float64",
+          "dominant_circle_signal_period_10.369620253164557": "float64",
+          "dominant_circle_signal_period_15.681470137825421": "float64",
+          "dominant_circle_signal_period_23.67630057803468": "float64",
+          "dominant_circle_signal_period_27.089947089947092": "float64",
+          "scaled_savgol_filter_delta": "float64"
+        },
+        "first_index": "2022-01-03 00:00:00",
+        "hash": "e775c8c38e70ac0299f4d74ddeca17e6c75c24ae6d2ec6b3261dcb24710ee044",
+        "hash_strategy": "pandas_hash",
+        "head": {
+          "columns": [
+            "Close",
+            "High",
+            "Low",
+            "Open",
+            "Volume",
+            "centered_averages_delta",
+            "scaled_savgol_filter_delta",
+            "composite_dominant_circles_signal",
+            "dominant_circle_signal_period_10.369620253164557",
+            "dominant_circle_signal_period_27.089947089947092",
+            "dominant_circle_signal_period_15.681470137825421",
+            "dominant_circle_signal_period_23.67630057803468",
+            "detrended"
+          ],
+          "data": [
+            [
+              391.1861877441,
+              391.4394048096,
+              386.511598618,
+              388.6248911832,
+              40575900.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              8.4253291346
+            ],
+            [
+              386.1123352051,
+              391.77054823,
+              383.0154189335,
+              391.7315848969,
+              58027200.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              5.6764997297
+            ],
+            [
+              374.2505187988,
+              385.5474773608,
+              373.9973017297,
+              384.427497075,
+              75739800.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -3.8655593731
+            ],
+            [
+              373.9875183105,
+              377.2305391506,
+              370.1991594933,
+              372.4293418722,
+              70814300.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -1.8228820317
+            ],
+            [
+              369.9362792969,
+              375.6821676865,
+              368.1638487324,
+              373.9973526175,
+              72652300.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -3.5889203579
+            ]
+          ],
+          "index": [
+            "2022-01-03T00:00:00.000",
+            "2022-01-04T00:00:00.000",
+            "2022-01-05T00:00:00.000",
+            "2022-01-06T00:00:00.000",
+            "2022-01-07T00:00:00.000"
+          ]
+        },
+        "index_dtype": "datetime64[ns]",
+        "index_name": null,
+        "kind": "DataFrame",
+        "last_index": "2024-12-23 00:00:00",
+        "shape": [
+          757,
+          13
+        ],
+        "tail": {
+          "columns": [
+            "Close",
+            "High",
+            "Low",
+            "Open",
+            "Volume",
+            "centered_averages_delta",
+            "scaled_savgol_filter_delta",
+            "composite_dominant_circles_signal",
+            "dominant_circle_signal_period_10.369620253164557",
+            "dominant_circle_signal_period_27.089947089947092",
+            "dominant_circle_signal_period_15.681470137825421",
+            "dominant_circle_signal_period_23.67630057803468",
+            "detrended"
+          ],
+          "data": [
+            [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              0.0,
+              -535.5336963612,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              0.0,
+              -702.4930511546,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              0.0,
+              -677.1504742897,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              0.0,
+              -479.4926361859,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              0.0,
+              -184.6959188143,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          ],
+          "index": [
+            "2024-12-17T00:00:00.000",
+            "2024-12-18T00:00:00.000",
+            "2024-12-19T00:00:00.000",
+            "2024-12-20T00:00:00.000",
+            "2024-12-23T00:00:00.000"
+          ]
+        }
+      },
+      {
+        "columns": [
+          "start_rebuilt_signal_index",
+          "end_rebuilt_signal_index",
+          "dominant_peaks_signals"
+        ],
+        "dtypes": {
+          "dominant_peaks_signals": "object",
+          "end_rebuilt_signal_index": "float64",
+          "start_rebuilt_signal_index": "float64"
+        },
+        "first_index": 0,
+        "hash": "13eabc0b792f75fbaa2a972ffce0a6d606320b230ecbfb9e2f2e4587e114875a",
+        "hash_strategy": "json_split",
+        "head": {
+          "columns": [
+            "start_rebuilt_signal_index",
+            "end_rebuilt_signal_index",
+            "dominant_peaks_signals"
+          ],
+          "data": [
+            [
+              null,
+              null,
+              {
+                "end_rebuilt_signal_index": 756,
+                "peak_amplitudes": 430.8316968013,
+                "peak_frequencies": 0.0964355469,
+                "peak_periods": 10.3696202532,
+                "peak_phases": 4.5835506731,
+                "sin_dominant_circle_signal_name": "dominant_circle_signal_period_10.369620253164557",
+                "start_rebuilt_signal_index": 245
+              }
+            ],
+            [
+              null,
+              null,
+              {
+                "end_rebuilt_signal_index": 756,
+                "peak_amplitudes": 697.0885233337,
+                "peak_frequencies": 0.0369140625,
+                "peak_periods": 27.0899470899,
+                "peak_phases": -0.8381552989,
+                "sin_dominant_circle_signal_name": "dominant_circle_signal_period_27.089947089947092",
+                "start_rebuilt_signal_index": 245
+              }
+            ],
+            [
+              null,
+              null,
+              {
+                "end_rebuilt_signal_index": 756,
+                "peak_amplitudes": 385.7242569804,
+                "peak_frequencies": 0.0637695312,
+                "peak_periods": 15.6814701378,
+                "peak_phases": 2.722925283,
+                "sin_dominant_circle_signal_name": "dominant_circle_signal_period_15.681470137825421",
+                "start_rebuilt_signal_index": 245
+              }
+            ],
+            [
+              null,
+              null,
+              {
+                "end_rebuilt_signal_index": 756,
+                "peak_amplitudes": 541.3557343981,
+                "peak_frequencies": 0.0422363281,
+                "peak_periods": 23.676300578,
+                "peak_phases": -1.4611630324,
+                "sin_dominant_circle_signal_name": "dominant_circle_signal_period_23.67630057803468",
+                "start_rebuilt_signal_index": 245
+              }
+            ]
+          ],
+          "index": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "index_dtype": "int64",
+        "index_name": null,
+        "kind": "DataFrame",
+        "last_index": 3,
+        "shape": [
+          4,
+          3
+        ],
+        "tail": {
+          "columns": [
+            "start_rebuilt_signal_index",
+            "end_rebuilt_signal_index",
+            "dominant_peaks_signals"
+          ],
+          "data": [
+            [
+              null,
+              null,
+              {
+                "end_rebuilt_signal_index": 756,
+                "peak_amplitudes": 430.8316968013,
+                "peak_frequencies": 0.0964355469,
+                "peak_periods": 10.3696202532,
+                "peak_phases": 4.5835506731,
+                "sin_dominant_circle_signal_name": "dominant_circle_signal_period_10.369620253164557",
+                "start_rebuilt_signal_index": 245
+              }
+            ],
+            [
+              null,
+              null,
+              {
+                "end_rebuilt_signal_index": 756,
+                "peak_amplitudes": 697.0885233337,
+                "peak_frequencies": 0.0369140625,
+                "peak_periods": 27.0899470899,
+                "peak_phases": -0.8381552989,
+                "sin_dominant_circle_signal_name": "dominant_circle_signal_period_27.089947089947092",
+                "start_rebuilt_signal_index": 245
+              }
+            ],
+            [
+              null,
+              null,
+              {
+                "end_rebuilt_signal_index": 756,
+                "peak_amplitudes": 385.7242569804,
+                "peak_frequencies": 0.0637695312,
+                "peak_periods": 15.6814701378,
+                "peak_phases": 2.722925283,
+                "sin_dominant_circle_signal_name": "dominant_circle_signal_period_15.681470137825421",
+                "start_rebuilt_signal_index": 245
+              }
+            ],
+            [
+              null,
+              null,
+              {
+                "end_rebuilt_signal_index": 756,
+                "peak_amplitudes": 541.3557343981,
+                "peak_frequencies": 0.0422363281,
+                "peak_periods": 23.676300578,
+                "peak_phases": -1.4611630324,
+                "sin_dominant_circle_signal_name": "dominant_circle_signal_period_23.67630057803468",
+                "start_rebuilt_signal_index": 245
+              }
+            ]
+          ],
+          "index": [
+            0,
+            1,
+            2,
+            3
+          ]
+        }
+      },
+      {
+        "items": {
+          "bartel_peaks_filtering": {
+            "kind": "bool",
+            "value": true
+          },
+          "bartel_scoring_threshold": {
+            "kind": "int",
+            "value": 0
+          },
+          "current_date": {
+            "kind": "str",
+            "value": "2023-12-29"
+          },
+          "cut_to_date_before_detrending": {
+            "kind": "bool",
+            "value": true
+          },
+          "data_column_name": {
+            "kind": "str",
+            "value": "Close"
+          },
+          "detrend_type": {
+            "kind": "str",
+            "value": "hp_filter"
+          },
+          "detrend_window": {
+            "kind": "int",
+            "value": 0
+          },
+          "final_kept_n_dominant_circles": {
+            "kind": "int",
+            "value": 4
+          },
+          "hp_filter_lambda": {
+            "kind": "int",
+            "value": 1600
+          },
+          "jp_filter_h": {
+            "kind": "int",
+            "value": 100
+          },
+          "jp_filter_p": {
+            "kind": "int",
+            "value": 3
+          },
+          "limit_n_harmonics": {
+            "kind": "NoneType",
+            "value": null
+          },
+          "lowess_k": {
+            "kind": "int",
+            "value": 3
+          },
+          "max_period": {
+            "kind": "int",
+            "value": 80
+          },
+          "min_period": {
+            "kind": "int",
+            "value": 10
+          },
+          "num_samples": {
+            "kind": "int",
+            "value": 256
+          },
+          "start_date": {
+            "kind": "NoneType",
+            "value": null
+          },
+          "transform_precision": {
+            "kind": "float",
+            "value": 0.01
+          }
+        },
+        "kind": "dict"
+      }
+    ],
+    "kind": "tuple"
+  },
+  "scenario_name": "qqq_eod_analyze_and_plot",
+  "schema_version": 1
+}

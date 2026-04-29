@@ -22,6 +22,13 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def add_repo_root() -> None:
+    """Make the package importable when this script is run from scripts/."""
+    repo_root = str(REPO_ROOT)
+    if repo_root not in sys.path:
+        sys.path.insert(0, repo_root)
+
+
 def add_repo_native_paths() -> None:
     """Make locally built native extension folders importable."""
     for relative in (
@@ -95,7 +102,12 @@ def json_safe(value: Any) -> Any:
 def summarize_dataframe(df: Any) -> dict[str, Any]:
     import pandas as pd
 
-    hashed = pd.util.hash_pandas_object(df, index=True).values.tobytes()
+    hash_strategy = "pandas_hash"
+    try:
+        hashed = pd.util.hash_pandas_object(df, index=True).values.tobytes()
+    except TypeError:
+        hash_strategy = "json_split"
+        hashed = df.to_json(date_format="iso", orient="split", default_handler=str).encode("utf-8")
     return {
         "kind": "DataFrame",
         "shape": list(df.shape),
@@ -106,6 +118,7 @@ def summarize_dataframe(df: Any) -> dict[str, Any]:
         "last_index": json_safe(df.index[-1]) if len(df.index) else None,
         "dtypes": {str(column): str(dtype) for column, dtype in df.dtypes.items()},
         "hash": sha256_bytes(hashed),
+        "hash_strategy": hash_strategy,
         "head": json.loads(df.head(5).to_json(date_format="iso", orient="split", default_handler=str)),
         "tail": json.loads(df.tail(5).to_json(date_format="iso", orient="split", default_handler=str)),
     }
@@ -114,7 +127,12 @@ def summarize_dataframe(df: Any) -> dict[str, Any]:
 def summarize_series(series: Any) -> dict[str, Any]:
     import pandas as pd
 
-    hashed = pd.util.hash_pandas_object(series, index=True).values.tobytes()
+    hash_strategy = "pandas_hash"
+    try:
+        hashed = pd.util.hash_pandas_object(series, index=True).values.tobytes()
+    except TypeError:
+        hash_strategy = "json_split"
+        hashed = series.to_json(date_format="iso", orient="split", default_handler=str).encode("utf-8")
     return {
         "kind": "Series",
         "name": json_safe(series.name),
@@ -123,6 +141,7 @@ def summarize_series(series: Any) -> dict[str, Any]:
         "first_index": json_safe(series.index[0]) if len(series.index) else None,
         "last_index": json_safe(series.index[-1]) if len(series.index) else None,
         "hash": sha256_bytes(hashed),
+        "hash_strategy": hash_strategy,
         "head": json.loads(series.head(5).to_json(date_format="iso", orient="split", default_handler=str)),
         "tail": json.loads(series.tail(5).to_json(date_format="iso", orient="split", default_handler=str)),
     }
@@ -167,6 +186,7 @@ def load_json(path: Path) -> dict[str, Any]:
 
 
 def capture(config: dict[str, Any]) -> dict[str, Any]:
+    add_repo_root()
     add_repo_native_paths()
 
     import cyPredict
@@ -227,4 +247,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -36,3 +36,6 @@ Use scenarios extracted from the notebooks under:
 D:\Dropbox\TRADING\STUDIES DEVELOPMENT\CYCLES ANALYSIS
 ```
 
+Committed scenarios:
+
+- `qqq_eod_analyze_and_plot.json`: downloads QQQ daily data from `yfinance` over the closed range `2022-01-01` to `2024-01-01` and captures `analyze_and_plot` at `2023-12-29`.

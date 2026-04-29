@@ -5,13 +5,20 @@ This document defines the first baseline tests needed before calculation cleanup
 ## Scenario 1 - Daily Yahoo Data
 
 - Data source: `yfinance`
-- Candidate ticker: `SPY`
+- Captured ticker: `QQQ`
 - Timeframe: `1d`
+- Closed range: `2022-01-01` to `2024-01-01`
+- Current date: `2023-12-29`
 - Purpose: verify daily date handling, detrending, Goertzel period selection, and single/multirange output dimensions.
 - Primary functions:
   - `cyPredict(...)`
   - `analyze_and_plot(...)`
   - `multiperiod_analysis(...)`
+- Current artifact:
+  - scenario: `tests/golden/scenarios/qqq_eod_analyze_and_plot.json`
+  - baseline: `tests/golden/baselines/qqq_eod_analyze_and_plot.json`
+
+This first baseline intentionally uses Yahoo EOD data, following the notebook workflow and project-owner direction. Because the data is downloaded from a provider, future recaptures should treat provider/library changes as a possible source of baseline drift even though the date range is historical and closed.
 
 ## Scenario 2 - Intraday Yahoo Data
 

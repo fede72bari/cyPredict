@@ -20,5 +20,4 @@ Generate a baseline with the Anaconda `cyenv` interpreter:
   --output-dir tests\golden\baselines
 ```
 
-Do not capture Yahoo/live-provider data as a golden baseline unless the raw data snapshot is also stored or frozen. Prefer file-based OHLCV fixtures exported from the notebooks.
-
+Prefer file-based OHLCV fixtures when a frozen input file is available. The first committed scenario, `qqq_eod_analyze_and_plot`, intentionally uses `yfinance` EOD data on a closed historical range to match the notebook workflow.
