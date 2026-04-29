@@ -14,12 +14,13 @@ Data: 2026-04-29
 - Fase 8.1 completata in questo ciclo di lavoro: `core/indicators.py` contiene `IndicatorsMixin` e gli helper `indict_*`.
 - Fase 7 parziale completata in questo ciclo di lavoro: `core/optimization.py` contiene `OptimizationMixin` e `custom_crossover`.
 - Fase 8.2 parziale completata in questo ciclo di lavoro: `core/extrema.py` contiene `ExtremaMixin`, helper trade/extrema, correlazione CDC/detrended e `MultiAn_cyclesAlignKPI`.
+- Fase 8.3 completata in questo ciclo di lavoro: `core/minmax.py` contiene `MinMaxMixin`, `min_max_analysis`, `min_max_analysis_concatenated_dataframe` e `get_min_max_analysis_df`.
 - Fase 9.1 completata in questo ciclo di lavoro: `core/persistence.py` contiene `PersistenceMixin`, `save_dataframe` e `get_most_updated_optimization_pars`.
-- La classe pubblica resta `cyPredict.cyPredict` e ora eredita da `StateMixin`, `DataMixin`, `DatesMixin`, `DetrendingMixin`, `SpectralMixin`, `DiagnosticsMixin`, `ExtremaMixin`, `IndicatorsMixin`, `OptimizationMixin`, `PersistenceMixin`, `ReconstructionMixin` e `ScoringMixin`.
+- La classe pubblica resta `cyPredict.cyPredict` e ora eredita da `StateMixin`, `DataMixin`, `DatesMixin`, `DetrendingMixin`, `SpectralMixin`, `DiagnosticsMixin`, `ExtremaMixin`, `IndicatorsMixin`, `MinMaxMixin`, `OptimizationMixin`, `PersistenceMixin`, `ReconstructionMixin` e `ScoringMixin`.
 - Gli import legacy sono stati mantenuti prima dell'import dei mixin: questa regola e' importante per evitare cambiamenti indiretti nell'ordine di inizializzazione delle librerie scientifiche/native. Unica eccezione verificata: l'import `yfinance` e' stato rimosso dal monolite perche' ora e' locale a `core/data.py` e il golden QQQ resta stabile.
 - Gli import calendario storici (`pytz`, `timezone`, `USFederalHolidayCalendar`, `BDay`, `timedelta`, `date`) restano temporaneamente nel monolite anche se non sono referenziati direttamente: la loro rimozione ha prodotto drift golden, quindi vanno trattati solo in un commit dedicato con analisi dell'ordine di import.
 - Gli import nuovi pesanti non presenti nel percorso golden, come `LinearRegression` usato da `jh_filter`, vanno preferibilmente caricati in modo lazy dentro il metodo; l'import top-level ha prodotto drift golden.
-- Prossima fase consigliata: estrarre min/max, poi spostare `analyze_and_plot` intero in un mixin dedicato quando il numero di dipendenze laterali sara' piu' basso, sempre con commit separati e golden QQQ dopo ogni spostamento.
+- Prossima fase consigliata: estrarre `multiperiod_analysis` e i blocchi di ottimizzazione piu' grandi in mixin dedicati; spostare `analyze_and_plot` intero solo dopo avere ridotto ancora le dipendenze laterali, sempre con commit separati e golden QQQ dopo ogni spostamento.
 
 ## Obiettivo
 

@@ -6,6 +6,7 @@ from .detrending import DetrendingMixin
 from .diagnostics import DiagnosticsMixin
 from .extrema import ExtremaMixin
 from .indicators import IndicatorsMixin
+from .minmax import MinMaxMixin
 from .optimization import OptimizationMixin
 from .persistence import PersistenceMixin
 from .reconstruction import ReconstructionMixin
@@ -20,6 +21,7 @@ __all__ = [
     "DiagnosticsMixin",
     "ExtremaMixin",
     "IndicatorsMixin",
+    "MinMaxMixin",
     "OptimizationMixin",
     "PersistenceMixin",
     "ReconstructionMixin",
