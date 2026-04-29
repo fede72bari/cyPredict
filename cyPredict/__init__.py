@@ -21,11 +21,8 @@ for _native_module_dir in _NATIVE_MODULE_DIRS:
         if _native_module_path not in sys.path:
             sys.path.insert(0, _native_module_path)
 
-# import goertzel # C dll
 from goertzel import goertzel_general_shortened as goertzel_general_shortened
 from goertzel import goertzel_DFT as goertzel_DFT
-# import genetic_optimization # C dll
-# from genetic_optimization import evaluate_fitness as evaluate_fitness
 
 from cyfitness import evaluate_fitness
 
@@ -36,20 +33,6 @@ from scipy.signal.windows import kaiser
 
 
 # Math, sci and stats libraries
-# import numpy as np
-# import math
-# from scipy.signal import argrelextrema
-# import random
-# from scipy.signal import find_peaks
-# from scipy.signal import argrelmax, argrelmin
-# from sklearn.preprocessing import StandardScaler
-# from scipy.integrate import simps
-# from scipy.stats import pearsonr, spearmanr, kendalltau
-# from scipy.integrate import simps
-# from scipy.signal import savgol_filter
-# from scipy.spatial.distance import euclidean
-# from scipy.spatial.distance import cdist
-# from scipy.spatial.distance import euclidean
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
 
@@ -117,7 +100,6 @@ import os
 import multiprocessing
 
 # Time Management
-# import datetime
 
 from datetime import datetime, timedelta, date
 import pytz
@@ -245,7 +227,6 @@ class cyPredict:
 
         self.MultiAn_detrended_max = np.int64(0)
         self.MultiAn_detrended_min = np.int64(0)
-#         self.MultiAn_dominant_cycles_df = pd.DataFrame(columns=['peak_frequencies', 'peak_phases', 'start_rebuilt_signal_index'])
         self.MultiAn_dominant_cycles_df = pd.DataFrame({
             'peak_frequencies': pd.Series(dtype='float64'),
             'peak_periods': pd.Series(dtype='float64'),
@@ -399,9 +380,7 @@ class cyPredict:
     def hp_filter(self, data, lambda_, ret=False):
         nobs = len(data)
 
-        # print(f"[DEBUG] first 5 values of data: {data[:5]}")
         output = output = data.to_numpy(dtype=np.float64).copy() #np.copy(data)
-        # print(f"[DEBUG] first 5 values of output after copy: {output[:5]}")
 
         if nobs <= 5:
             print('nobs <= 5')
@@ -471,19 +450,13 @@ class cyPredict:
             H2 = H1
             H1 = output[i - 1]
 
-        # print(f"[DEBUG] final output (first 10): {output[:10]}")
-        # print(f"[DEBUG] final data (first 10): {data.values[:10]}")
 
 
         if not ret:
             output = data - output
 
-        # if not ret:
-            # output = data.values - output  # usa solo i valori di data
-            # output = pd.Series(output, index=data.index)  # ripristina l'indice
         
 
-        # print(f"[DEBUG] final output after subtraction (first 10): {output[:10]}")
 
         return output, 1
 
@@ -551,7 +524,6 @@ class cyPredict:
         n = len(y)
 
         print("p: " + str(p) + ", h: " +str(h))
-        # h = 8  # Choose the desired forecast horizon
 
         # Initialize arrays for regression inputs and outputs
         X = np.ones((n - h, p + 1))
@@ -577,283 +549,6 @@ class cyPredict:
 
 
 
-#     def datetime_dateset_extend(self, df, extension_periods = 10):
-        
-#         print("In datetime_dateset_extend")
-
-#         df.index = df.index.tz_localize(None)
-
-#         today = pd.to_datetime(df.index.max().date())
-
-
-#         # Yesterday data
-#         #   in yahoo df yesterday data could be incompleted, refers to the available
-#         #   previous day before yesterday considering weekends absence of data
-#         yesterday = today - pd.DateOffset(days=1)
-#         yesterday_date = yesterday.date()  # Converti Timestamp in datetime.date
-#         before_yesterday_data = df[df.index.date < yesterday_date]
-#         last_complete_day_date = pd.Timestamp(before_yesterday_data.index.max()).date() 
-#         last_complete_day_data = before_yesterday_data[before_yesterday_data.index.date == last_complete_day_date] 
-
-#         # List of the yesterday sample times
-#         yesterday_times = pd.DataFrame({
-#             'hour': last_complete_day_data.index.hour,
-#             'minute': last_complete_day_data.index.minute,
-#             'second': last_complete_day_data.index.second
-#         })
-
-#         samples_per_day = len(yesterday_times)       
-
-
-#         # Inizialization
-#         new_datetime = today
-#         new_indexes = []
-
-#         last_datetime = df.index[-1]
-#         last_time = (last_datetime.hour, last_datetime.minute, last_datetime.second)
-
-#         time_cardinality_row = (yesterday_times['hour'] == last_time[0]) & (yesterday_times['minute'] == last_time[1]) &                            (yesterday_times['second'] == last_time[2])
-
-#         # Trova l'indice effettivo
-#         time_cardinality = time_cardinality_row.idxmax()
-
-
-#         for _ in range(extension_periods):
-            
-
-#             # remain in the same day
-#             if(time_cardinality < (samples_per_day-1)):
-#                 time_cardinality += 1
-
-#             else:
-#                 # restore to first sample time of the day
-#                 time_cardinality = 0
-
-#                 # increase by one day skeeping weekends
-#                 days = 1
-
-#                 while True:
-#                     temp_date = new_datetime + pd.DateOffset(days=days)
-#                     if temp_date.weekday() < 5:  # Working day
-#                         break
-#                     days += 1
-
-#                 new_datetime = temp_date
-
-
-# #                 if df.index.tz is not None:
-# #                     print("df.index.tz is not None")
-# #                     new_datetime = temp_date.tz_localize(df.index.tz)
-# #                 else:
-# #                     new_datetime = temp_date.tz_localize(None)
-# #                     print("df.index.tz IS None")
-
-
-            
-#             # Supponendo che time_cardinality sia l'indice della riga che vuoi utilizzare
-#             new_hour = yesterday_times.loc[time_cardinality, 'hour']
-#             new_minute = yesterday_times.loc[time_cardinality, 'minute']
-#             new_second = yesterday_times.loc[time_cardinality, 'second']
-
-# #             # ✅ Se df.index ha una timezone, assegniamola direttamente con tz_localize
-# #             if df.index.tz is not None:
-# #                 new_datetime = new_datetime.replace(hour=new_hour, minute=new_minute, second=new_second).tz_localize(df.index.tz)
-# #             else:
-# #                 new_datetime = new_datetime.replace(hour=new_hour, minute=new_minute, second=new_second).tz_localize(None)
-
-# #             new_indexes.append(new_datetime)
-            
-#             new_datetime = new_datetime.replace(hour=new_hour, minute=new_minute, second=new_second)
-#             new_indexes.append(new_datetime)
-
-
-
-#         # Extend the original dataframe with new rows and datetime indexes
-#         new_rows = pd.DataFrame(np.nan, index=new_indexes, columns=df.columns)
-#         df = pd.concat([df, new_rows])
-        
-#         if df.index.tz is None:
-#             df.index = pd.to_datetime(df.index).tz_localize(self.original_data_time_zone) #(self.time_zone)
-            
-# #         print(f"Type of df.index: {type(df.index)}")
-# #         print(f"Timezone of df.index: {df.index.tz}")
-
-
-#         return df
-
-
-#     def datetime_dateset_extend(self, df, extension_periods=10):
-#         print("In datetime_dateset_extend")
-
-#         # ✅ Mantiene il timezone originale
-#         timezone = df.index.tz
-#         print(f"Original timezone: {timezone}")
-
-#         # ✅ Usa normalize per mantenere il timezone
-#         today = df.index.max().date()#.normalize()
-#         print(f"Today before timezone adjustment: {today}")
-
-
-#         # ✅ Calcolo giorni festivi americani
-#         cal = USFederalHolidayCalendar()
-#         holidays = cal.holidays(start=df.index.min().date(), end=df.index.max().date())
-        
-#         print(f'df.index.min().date() {df.index.min().date()}')
-#         print(f'df.index.min().date() {df.index.max().date()}')
-
-
-#         print(f"US holidays (converted):\n{holidays}")
-
-
-#         if not holidays.empty:
-#             if timezone is not None:
-#                 holidays = holidays.tz_localize('UTC').tz_convert(timezone)
-#             print(f"US holidays (converted):\n{holidays}")
-#         else:
-#             print("No holidays found in range.")
-
-#         # ✅ Trova il primo lunedì/post festivo (passato)
-#         if not holidays.empty:
-#             monday_mask_past = (
-#                 (df.index.date < today) &
-#                 (df.index.weekday == 0) &
-#                 (~df.index.date.isin(holidays)) &
-#                 ((df.index.date - pd.Timedelta(days=1)).isin(holidays))
-#             )
-#         else:
-#             monday_mask_past = (df.index.date < today) & (df.index.weekday == 0)
-
-#         if monday_mask_past.any():
-#             first_monday_past = df.loc[monday_mask_past].index.max().date()
-#             first_monday_data_past = df.loc[df.index.date == first_monday_past]
-#         else:
-#             first_monday_past = None
-#             first_monday_data_past = pd.DataFrame()
-
-#         # ✅ Trova il primo lunedì/post festivo (futuro)
-#         if not holidays.empty:
-#             monday_mask_future = (
-#                 (df.index.date > today) &
-#                 (df.index.weekday == 0) &
-#                 (~df.index.date.isin(holidays)) &
-#                 ((df.index.date - pd.Timedelta(days=1)).isin(holidays))
-#             )
-#         else:
-#             monday_mask_future = (df.index.date > today) & (df.index.weekday == 0)
-
-#         if monday_mask_future.any():
-#             first_monday_future = df.loc[monday_mask_future].index.min().date
-#             first_monday_data_future = df.loc[df.index.date == first_monday_future]
-#         else:
-#             first_monday_future = None
-#             first_monday_data_future = pd.DataFrame()
-
-#         # ✅ Stampa di debug
-#         print(f"first_monday_past: {first_monday_past}")
-#         print(f"first_monday_future: {first_monday_future}")
-
-
-#         # ✅ Trova il primo giorno lavorativo non lunedì (passato)
-#         if not holidays.empty:
-#             non_monday_mask_past = (
-#                 (df.index.date < today) &  # ✅ Confronto con .date()
-#                 (df.index.weekday != 0) &
-#                 (~df.index.date.isin(holidays))  # ✅ Confronto con .date()
-#             )
-#         else:
-#             non_monday_mask_past = (df.index.date < today) & (df.index.weekday != 0)
-
-#         if non_monday_mask_past.any():
-#             first_non_monday_past = df.loc[non_monday_mask_past].index.max().date()
-#             first_non_monday_data_past = df.loc[df.index.date == first_non_monday_past]
-#         else:
-#             first_non_monday_past = None
-#             first_non_monday_data_past = pd.DataFrame()
-
-#         # ✅ Trova il primo giorno lavorativo non lunedì (futuro)
-#         if not holidays.empty:
-#             non_monday_mask_future = (
-#                 (df.index.date > today) &
-#                 (df.index.weekday != 0) &
-#                 (~df.index.date.isin(holidays) ) # ✅ Confronto con .date()
-#             )
-#         else:
-#             non_monday_mask_future = (df.index.date > today) & (df.index.weekday != 0)
-
-#         if non_monday_mask_future.any():
-#             first_non_monday_future = df.loc[non_monday_mask_future].index.min().date()
-#             first_non_monday_data_future = df.loc[df.index.date == first_non_monday_future]
-#         else:
-#             first_non_monday_future = None
-#             first_non_monday_data_future = pd.DataFrame()
-
-#         # ✅ Stampa di debug
-#         print(f"first_non_monday_past: {first_non_monday_past}")
-#         print(f"first_non_monday_future: {first_non_monday_future}")
-
-#         # ✅ Scegli il giorno con più dati
-#         if len(first_monday_data_past) >= len(first_monday_data_future):
-#             selected_monday_data = first_monday_data_past
-#             print("Selected Monday past")
-#         else:
-#             selected_monday_data = first_monday_data_future
-#             print("Selected Monday future")
-
-#         if len(first_non_monday_data_past) >= len(first_non_monday_data_future):
-#             selected_non_monday_data = first_non_monday_data_past
-#             print("Selected non-Monday past")
-#         else:
-#             selected_non_monday_data = first_non_monday_data_future
-#             print("Selected non-Monday future")
-
-#         # ✅ Estrai TEMPI (senza data) dei giorni selezionati
-#         monday_times = selected_monday_data.index.time
-#         non_monday_times = selected_non_monday_data.index.time
-#         print(f"Monday times: {monday_times}")
-#         print(f"Non-Monday times: {non_monday_times}")
-
-#         samples_per_monday = len(monday_times)
-#         samples_per_non_monday = len(non_monday_times)
-
-#         print(f"Samples per Monday: {samples_per_monday}")
-#         print(f"Samples per Non-Monday: {samples_per_non_monday}")
-
-#         # ✅ Inizializzazione
-#         new_indexes = []
-#         new_datetime = today
-
-#         for _ in range(extension_periods):
-#             if len(new_indexes) > 0 and (len(new_indexes) % samples_per_monday == 0 or len(new_indexes) % samples_per_non_monday == 0):
-#                 days = 1
-#                 while True:
-#                     temp_date = new_datetime + pd.DateOffset(days=days)
-#                     if temp_date.weekday() < 5 and temp_date not in holidays:
-#                         new_datetime = temp_date
-#                         break
-#                     days += 1
-
-#             if new_datetime.weekday() == 0 or new_datetime in holidays:
-#                 # Lunedì o giorno festivo → usa gli orari del lunedì
-#                 current_time = monday_times[len(new_indexes) % samples_per_monday]
-#             else:
-#                 # Giorno lavorativo → usa gli orari del giorno lavorativo
-#                 current_time = non_monday_times[len(new_indexes) % samples_per_non_monday]
-
-#             # ✅ Applica il tempo al nuovo datetime
-#             new_datetime = new_datetime.replace(hour=current_time.hour, minute=current_time.minute, second=current_time.second)
-#             new_indexes.append(new_datetime)
-
-#         # ✅ Estende il dataframe con le nuove date
-#         new_rows = pd.DataFrame(np.nan, index=new_indexes, columns=df.columns)
-#         df = pd.concat([df, new_rows])
-
-#         # ✅ Ripristina il fuso orario se esiste
-#         if timezone is not None:
-#             df.index = df.index.tz_convert(timezone)
-
-#         return df
-
-# class cyPredict:
     def find_next_valid_datetime(self, current_datetime, friday_times, saturday_times, sunday_times, workday_times, timezone=None):
         days = 0
 
@@ -914,32 +609,6 @@ class cyPredict:
                 
                 
             if timeframe in ['1d', '1h', '1wk', '1mo']:
-#                 # usa solo giorni lavorativi
-#                 print("DAILY TIMEFRAME DETECTED")
-#                 last_date = df.index.max().normalize()
-
-#                 # Calendario festività USA (puoi sostituirlo o estenderlo con altri)
-#                 cal = USFederalHolidayCalendar()
-#                 holidays = cal.holidays(start=last_date, end=last_date + pd.DateOffset(days=extension_periods * 3))
-
-#                 new_indexes = []
-#                 next_date = last_date
-
-#                 while len(new_indexes) < extension_periods:
-#                     next_date += BDay(1)  # Solo giorni lavorativi
-#                     if next_date in holidays:
-#                         continue
-#                     new_indexes.append(next_date)
-
-#                 # Se il dataframe è timezone-aware, converti anche i nuovi indici
-#                 if timezone is not None:
-#                     new_indexes = [pd.Timestamp(d).tz_localize('UTC').tz_convert(timezone) for d in new_indexes]
-                    
-# #                 print(f"New daily datetime indexes: {new_indexes}")
-
-#                 new_rows = pd.DataFrame(np.nan, index=new_indexes, columns=df.columns)
-#                 df = pd.concat([df, new_rows])
-
                 print("DAILY TIMEFRAME DETECTED")
 
                 # Determina quali giorni della settimana sono presenti storicamente
@@ -963,9 +632,6 @@ class cyPredict:
                 if timezone is not None:
                     new_indexes = [pd.Timestamp(d).tz_localize(timezone) for d in new_indexes]
 
-#                 # Creazione nuove righe NaN e concat
-#                 new_rows = pd.DataFrame(np.nan, index=new_indexes, columns=df.columns)
-#                 df = pd.concat([df, new_rows])
                 
             else:
                 # Prendi TUTTI i datetime dell'ultimo venerdì disponibile
@@ -1041,7 +707,6 @@ class cyPredict:
                         new_datetime, friday_times, saturday_times, sunday_times, workday_times, timezone
                     )
                     
-#         print(f'new_indexes {new_indexes}')
 
         len_before = len(df)
 
@@ -1050,7 +715,6 @@ class cyPredict:
         df = pd.concat([df, new_rows])
         
         len_after = len(df)
-#         print(f"[DEBUG] after daily extension, df len was {len_before} -> {len_after}, last index now={df.index[-1]}")
         
         df.to_csv('C:\\Users\\Federico\\Downloads\\df new dates.csv')
 
@@ -1109,7 +773,6 @@ class cyPredict:
                          windowing = None,
                          kaiser_beta = 5,
                          centered_averages = True,
-#                          time_zone = None,
                          other_correlations = False,
                          include_calibrated_MACD = False,
                          include_calibrated_RSI = False,
@@ -1269,7 +932,6 @@ class cyPredict:
         
 
         signals_results = pd.DataFrame()
-        # signals_results['parameters'] = configuration
 
         if(data is not None):
             if(data.empty): # or self.state["data_state"] != 'initialized'):
@@ -1306,8 +968,6 @@ class cyPredict:
             print("final_kept_n_dominant_circles or both min_period and max_period shalle be not null.")
             return None, None, None, None, None
 
-#         if(time_zone != None):
-#             time_zone = timezone(time_zone)
 
 
         # Normalize the working index before any date slicing.
@@ -1325,15 +985,9 @@ class cyPredict:
 
 
             # Types conversion
-#             if(time_zone != None):
-#                 current_date = pd.Timestamp(current_date, tz=time_zone)
 
-#             else:
-#                 current_date = pd.to_datetime(current_date)
 
-            # print(f"----->current_date before: {current_date}")
 
-#             print(f"----->IN analyze_and_plot, original_data.index.tz {original_data.index.tz}")
 
             if original_data.index.tz is not None:
                 # Match current_date to the timezone already used by the data.
@@ -1342,12 +996,10 @@ class cyPredict:
                 # Keep daily/timezone-naive data timezone-naive.
                 current_date = pd.Timestamp(current_date).tz_localize(None)
                 
-#             print(f"current_date after: {current_date}")
 
 
             filtered_data_cd = original_data[original_data.index == current_date]
             
-#             print(f"filtered_data_cd : {filtered_data_cd}")
 
 
             if (filtered_data_cd.empty):
@@ -1362,20 +1014,14 @@ class cyPredict:
                 max_datetime = data.index.max()
                 index_of_max_time_for_cd = original_data.index.get_indexer([max_datetime])[0]
                     
-                # print('MAX DATETIME: ' + str(max_datetime))
-                # print(f"---> in analyse and plot index_of_max_time_for_cd {index_of_max_time_for_cd}")
-#                 print(f'data.tail(1) {data.tail(1)}')
 
 
-#                 print('index_of_max_time_for_cd: ' + str(index_of_max_time_for_cd))
                     
                 available_n_samples = len(data)
                 
-#                 print(f"available_n_samples: {available_n_samples}")
 
                 data = data.tail(num_samples)
                 
-#                 print(f"data len after: {len(data)}")
                 
                 if len(data) != num_samples:
                     raise ValueError(f"Mismatch in selected sample size: expected {num_samples}, got {len(data)}")
@@ -1385,9 +1031,6 @@ class cyPredict:
                 start_rebuilt_signal_index = index_of_max_time_for_cd - num_samples + 1
                 end_rebuilt_signal_index = index_of_max_time_for_cd + num_samples
                 
-#                 print(f"data len {len(data)}")
-#                 print(f"start_rebuilt_signal_index: {start_rebuilt_signal_index}")
-#                 print(f"end_rebuilt_signal_index {end_rebuilt_signal_index}")
                 
                 if start_rebuilt_signal_index < 0:
                     raise ValueError(f"For the period range from {min_period} to {max_period}, "
@@ -1430,7 +1073,6 @@ class cyPredict:
         # Keep the selected price column as the transform input.
         data = data[data_column_name].values
 
-        # print('\n Data: ' + str(data[-20:]))
 
 # Detrending intentionally uses original_data so the chosen cut policy is explicit.
 
@@ -1448,14 +1090,11 @@ class cyPredict:
             print('Detrend filter applied to full original data time series not cut to current datetime.')
             detrending_data = original_data[data_column_name]
 
-        # display(detrending_data.tail(20))
         
         # Select the detrending branch without altering the transform path.
         if(detrend_type == 'linear'):
             print(f'linear detrend, detrend window = {detrend_window}')
             print(f'len orginal_data[data_column_name] = {len(original_data[data_column_name])}')
-            # detrended_data = detrend(data, order=1)
-#             detrended_data = detrend(original_data[data_column_name], order=1)
 
             detrended_data = self.linear_detrend(detrending_data[data_column_name], window_size = detrend_window)
     
@@ -1478,16 +1117,12 @@ class cyPredict:
             print('lowess')
             _, detrended_data = self.detrend_lowess(detrending_data, max_period, k=4)
             
-        # print(f'detrend data type {type(detrended_data)}')
-        # display(detrended_data.iloc[0:10])
         
         if original_data[data_column_name].isnull().all():
             raise ValueError(f"All values in '{data_column_name}' are NaN — detrending aborted.")
 
 
-#         print('detrended_data.iloc[start_rebuilt_signal_index:end_rebuilt_signal_index+1]: ' + str(detrended_data.iloc[start_rebuilt_signal_index:end_rebuilt_signal_index+1]))
 
-        # print('\t\t\tData preparation eneded, start Goertzel')
         
         if(time_tracking):
             self.track_time('\tPartial time Data Preparation')
@@ -1511,11 +1146,9 @@ class cyPredict:
             reduced_detrended_data = detrended_data.iloc[start_rebuilt_signal_index:end_rebuilt_signal_index+1]
             
             if(windowing == 'kaiser'):
-                # print(f"Kaiser windowing applied, beta = {kaiser_beta}")
                 window = kaiser(len(reduced_detrended_data), kaiser_beta)
                 reduced_detrended_data = reduced_detrended_data * window
             
-            # temp_amplitudes, temp_phases, _, temp_minoffset, temp_maxoffset = goertzel_DFT(reduced_detrended_data, 1/frequency)
             
             temp_amplitudes, temp_phases, _, temp_minoffset, temp_maxoffset = goertzel_DFT(
                 reduced_detrended_data.values.astype(np.float64), 
@@ -1530,7 +1163,6 @@ class cyPredict:
         minoffset = [int(x) for x in minoffset]
         maxoffset = [int(x) for x in maxoffset]
 
-        # print(harmonics_amplitudes)
 
         harmonics_amplitudes = np.array(harmonics_amplitudes)
         phases = np.array(phases)
@@ -1561,8 +1193,6 @@ class cyPredict:
         goertzel_df_peaks['peak_next_max_offset'] = peak_next_max_offset
 
 
-        # if(data_column_name == 'RSI_column_name'):
-        # print('\t\t\tGoertzel finished, start harmonics ahanlysis')
 
 
         if(time_tracking):
@@ -1576,17 +1206,12 @@ class cyPredict:
         # min_period..max_period.
         cut_peaks_indexes = []
 
-        # print(f'\t\t\t\tlen peaks_indexes: {peaks_indexes}')
 
         if(limit_n_harmonics != None):
-#             print("limit_n_harmonics: " + str(limit_n_harmonics))
             cut_peaks_indexes = peaks_indexes[0:limit_n_harmonics]
 
         elif((min_period != None) & (max_period != None)):
 
-            # print("\t\t\t\tlimit_n_harmonics: False")
-            # print(f"\t\t\t\tmin_period: {min_period}, max_period: {max_period},")
-            # print(f'\t\t\t\t\tpeak_periods: {peak_periods}')
 
             for index, period in enumerate(peak_periods):
 
@@ -1602,11 +1227,8 @@ class cyPredict:
             print(f"\t\t\t\tlen(cut_peaks_indexes) == 0")
             return None, None, None, None, None
         
-#         print(f"\t\t\t\tlen(cut_peaks_indexes) == {len(cut_peaks_indexes)}")
         
 
-        # if(data_column_name == 'RSI_column_name'):
-        # print('\t\t\tHarmonixs ennded, started Bertel')
 
                             
         if(time_tracking):
@@ -1624,12 +1246,10 @@ class cyPredict:
             for index in cut_peaks_indexes:
                 frequency = frequency_range[index]
                 cycle_length = 1 / frequency
-                # max_segments = int(num_samples / cycle_length)
                 divisor = 100 #16
                 max_segments = 30 # int(num_samples/divisor)
 
                 bartelsscore, _ = self.get_bartels_score(data, cycle_length, max_segments) #get_bartels_score(detrended_data, cycle_length, max_segments)
-                # goertzel_df_peaks[goertzel_df_peaks['peaks_indexes'] == index]['bartel_score'] =  bartelsscore
                 goertzel_df_peaks.loc[goertzel_df_peaks['peaks_indexes'] == index, 'bartel_score'] = bartelsscore
 
                 if(bartelsscore >= bartel_scoring_threshold):
@@ -1640,8 +1260,6 @@ class cyPredict:
             dominant_peaks_indexes = peaks_indexes
 
 
-        # if(data_column_name == 'RSI_column_name'):
-        # print('\t\t\tBartel ended, started Correlations')
 
         if(time_tracking):
             self.track_time('\tPartial time Bartel Score')                           
@@ -1693,21 +1311,12 @@ class cyPredict:
                 averages['savgol_filter_short'] = savgol_filter(data_df[data_column_name], int(period), 2)
                 averages['savgol_filter_delta'] = averages['savgol_filter_short']  - averages['savgol_filter_long']
                 averages['scaled_savgol_filter_delta'] = scaler.fit_transform(averages['savgol_filter_delta'].values.reshape(-1, 1)).flatten()
-#                 print(f"Length of data_df[data_column_name]: {len(data_df[data_column_name])}")
-#                 print(f"Length of signal['scaled_signal']: {len(signal['scaled_signal'])}")
-#                 print(f"Length of averages['scaled_savgol_filter_delta']: {len(averages['scaled_savgol_filter_delta'])}")
-#                 print(f"Period: {period}, Long filter period: {int(period*2)}, Short filter period: {int(period)}")
-#                 print(f"Length of savgol_filter_long: {len(averages['savgol_filter_long'])}")
-#                 print(f"Length of savgol_filter_short: {len(averages['savgol_filter_short'])}")
-#                 print(f"Length of savgol_filter_delta: {len(averages['savgol_filter_delta'])}")
 
 
 
                 goertzel_df_peaks.loc[goertzel_df_peaks['peaks_indexes'] == index, 'scaled_savgol_filter_delta_correlation'] = simpson(signal['scaled_signal'] * np.roll(averages['scaled_savgol_filter_delta'], tau), dx=1)
 
 
-            # if(data_column_name == 'RSI_column_name'):
-            # print('\t\t\tCorrelations ended, started peaks analysis')
                             
                             
             if(time_tracking):
@@ -1727,7 +1336,6 @@ class cyPredict:
             scaled_savgol_filter_delta_min_peaks_indexes = argrelmin(averages['scaled_savgol_filter_delta'].values, order = peaks_tollerance)[0] # find indexes of peaks
             scaled_savgol_filter_delta_peaks_n = len(scaled_savgol_filter_delta_max_peaks_indexes) + len(scaled_savgol_filter_delta_min_peaks_indexes)
 
-            # print("Period: " + str(period) + "peaks_tollerance: " + str(peaks_tollerance) + "signal_peaks_n: " + str(signal_peaks_n) + "scaled_savgol_filter_delta_peaks_n" + str(scaled_savgol_filter_delta_peaks_n))
             goertzel_df_peaks.loc[goertzel_df_peaks['peaks_indexes'] == index, 'scaled_signal_vs_scaled_savgol_filter_delta_peaks_n_ratio'] = abs(signal_peaks_n - scaled_savgol_filter_delta_peaks_n) / period # peaks_n_ratio
             
                             
@@ -1798,8 +1406,6 @@ class cyPredict:
 
             goertzel_df_peaks.loc[goertzel_df_peaks['peaks_indexes'] == index, 'scaled_signal_vs_scaled_savgol_filter_delta_peaks_phase_RMSE'] = root_mean_square_error
 
-        # if(data_column_name == 'RSI_column_name'):
-        # print('\t\t\tPeaks analysis ennded, started global scoring')
 
                             
         if(time_tracking):
@@ -1823,7 +1429,6 @@ class cyPredict:
         descending_columns = ['scaled_signal_vs_scaled_savgol_filter_delta_peaks_phase_RMSE',
                               'scaled_signal_vs_scaled_savgol_filter_delta_peaks_n_ratio'] # Higer score for lower values
 
-        # print(goertzel_df_peaks.columns)
         if 'scaled_savgol_filter_delta_correlation' not in goertzel_df_peaks:
             print(goertzel_df_peaks)
 
@@ -1831,8 +1436,6 @@ class cyPredict:
 
         goertzel_df_peaks['global_score'] = global_score
 
-        # if(data_column_name == 'RSI_column_name'):
-        # print('\t\t\tPeaksanalyss ended, started peaks sorting')
         
         if(time_tracking):
             self.track_time('\tPartial time Cicle Global Scoring calculation')   
@@ -1868,12 +1471,10 @@ class cyPredict:
         if(dominant_cicles_sorting_type == 'global_score'):
             sorted_indices = dominant_peaks['global_score'].argsort()[::-1]
             sorted_dominant_peaks_indexes = dominant_peaks['dominant_peaks_indexes'].iloc[sorted_indices]
-          # print("dominant_cicles_sorting_type == 'global_score'")
 
         else:
             sorted_indices = dominant_peaks['scaled_peak_amplitudes'].argsort()[::-1]
             sorted_dominant_peaks_indexes = dominant_peaks['dominant_peaks_indexes'].iloc[sorted_indices]
-          # print("dominant_cicles_sorting_type == 'dominant_peaks_indexes'")
 
         used_indexes = sorted_dominant_peaks_indexes[0:final_kept_n_dominant_circles]
 
@@ -1893,8 +1494,6 @@ class cyPredict:
         kept_dominant_peaks['scaled_peak_amplitudes'] = kept_dominant_scaled_peak_amplitudes
         kept_dominant_peaks['peak_phases'] = kept_dominant_peak_phases
 
-        # if(data_column_name == 'RSI_column_name'):
-        # print('\t\t\tpeaks sorting ended, started Dominant Circle Calibrated Standard Indicators')
 
         if(time_tracking):
             self.track_time('\tPartial time Dominants Peaks Sorting')   
@@ -1927,8 +1526,6 @@ class cyPredict:
 
         dominant_period = max_period_dominant_circle #max_dominant_peak_period
 
-        # if(data_column_name == 'RSI_column_name'):
-        # print('\t\t\tDominant Circle Calibrated Standard Indicators ended, started Averages Delta')
         
             
         if(time_tracking):
@@ -2059,7 +1656,6 @@ class cyPredict:
         new_columns['composite_dominant_circles_signal'] = signal
 
 
-        # display(original_data.tail(10))
             
         if(time_tracking):
             self.track_time('\tPartial time Dominant Cicle Signals') 
@@ -2127,7 +1723,6 @@ class cyPredict:
 
             if not existing_rows.empty:
                 for col in new_data.columns:
-                    # original_data.loc[existing_rows, col] = new_data_final.loc[existing_rows, col].values
                     if col != 'composite_dominant_circles_signal':
                         original_data.loc[existing_rows, col] = pd.to_numeric(new_data_final.loc[existing_rows, col].values, errors='coerce')
 
@@ -2140,8 +1735,6 @@ class cyPredict:
         if(time_tracking):
             self.track_time('\tPartial time Detrended Data') 
 
-        # print('before savsgol')
-        # display(original_data.tail(10))
 
         # ------------------------------------------------------
         # Refresh the Savitzky-Golay delta column after alignment
@@ -2171,26 +1764,14 @@ class cyPredict:
         # ------------------------------------------------------
 
         if(print_report == True):
-#                 print('ANALYZED SAMPLES NUMBER: ' + str(len(data)))
-#                 config_data = [(key, value) for key, value in configuration.items()]
-#                 table = tabulate(config_data, headers=["Parameter", "Value"], tablefmt="fancy_grid")
-#                 print(table)
             display(configuration)
 
 
 
             print("\n")
-#                 print_data = goertzel_df_peaks.values.tolist()
-#                 print_headers = goertzel_df_peaks.columns.tolist()
-#                 table = tabulate(print_data, print_headers, tablefmt="fancy_grid")
-#                 print(table)
             display(goertzel_df_peaks)
 
             print("\n")
-#                 print_data = kept_dominant_peaks.values.tolist()
-#                 print_headers = kept_dominant_peaks.columns.tolist()
-#                 table = tabulate(print_data, print_headers, tablefmt="fancy_grid")
-#                 print(table)
             display(kept_dominant_peaks)
 
 
@@ -2248,8 +1829,6 @@ class cyPredict:
             fig.add_trace(go.Scatter(x=original_data.index, y=normalized_composite_circles, mode="lines", name="Dominant Circle Signal"), row=2, col=1)
 
 
-#             fig.add_trace(go.Scatter(x=original_data.index, y=original_data['detrended'] , mode="lines", name="Detrended Close"), row=2, col=1)
-#             fig.add_trace(go.Scatter(x=original_data.index, y=original_data['composite_dominant_circles_signal'] , mode="lines", name="Dominant Circle Signal"), row=2, col=1)
 
 
 
@@ -2283,7 +1862,6 @@ class cyPredict:
                              current_date,
                              periods_pars,
                              best_fit_start_back_period = None,                             
-#                              time_zone = 'America/New_York',
                              pars_from_opt_file = False,
                              files_path_name = None,
                              show_charts = True,
@@ -2578,7 +2156,6 @@ class cyPredict:
                              kaiser_beta = kaiser_beta,
                              cut_to_date_before_detrending = cut_to_date_before_detrending,
                              centered_averages = True,
-#                              time_zone = time_zone,
                              other_correlations = True,
                              include_calibrated_MACD = True,
                              include_calibrated_RSI = True,
@@ -2593,11 +2170,6 @@ class cyPredict:
             signals_results_series.append(signal_results) # pd.concat([signals_results_df, signal_results], ignore_index=True)
             configurations_series.append(configuration)
 
-            # print(f"index {index}")
-            # print(f"min_period {min_period}")
-            # print(f'elaborated_data len {len(elaborated_data)}')
-            # print(f'elaborated_data_series len {len(elaborated_data_series)}')
-#             print(f'elaborated_data_series  {elaborated_data_series}')
             if(len(elaborated_data) > max_length_series):
 
                 max_length_series = len(elaborated_data)
@@ -2626,8 +2198,6 @@ class cyPredict:
 
         self.MultiAn_reference_detrended_data = elaborated_data_series[index_detrended_data]['detrended'][0:index_of_max_time_for_cd+1]
         
-#         print(f"--> elaborated_data_series[index_detrended_data]['detrended'] len: {len(elaborated_data_series[index_detrended_data]['detrended'])}")
-#         display(elaborated_data_series[index_detrended_data]['detrended'].head(10))
 
         if(MultiAn_fitness_type_svg_smoothed == True):
             self.MultiAn_reference_detrended_data = savgol_filter(self.MultiAn_reference_detrended_data, MultiAn_fitness_type_svg_filter, 2)
@@ -2640,8 +2210,6 @@ class cyPredict:
         self.MultiAn_detrended_min = np.int64(self.MultiAn_reference_detrended_data.min())
         
         
-#         print(f"self.MultiAn_reference_detrended_data {self.MultiAn_reference_detrended_data}")
-#         print(f"self.MultiAn_reference_detrended_data.max() {self.MultiAn_reference_detrended_data.max()}")
 
         
         # Reset the dominant-cycle table so previous runs cannot leak in.
@@ -2805,8 +2373,6 @@ class cyPredict:
         
         elif(opt_algo_type == 'genetic_omny_frequencies'):
 
-            # print(f"MultiAn_dominant_cycles_df columns: {self.MultiAn_dominant_cycles_df.columns}")
-            # print("\n[DEBUG] Checking for complex values in peak_amplitudes/frequencies/phases...")
             
             self.debug_check_complex_values()
 
@@ -2830,11 +2396,6 @@ class cyPredict:
             toolbox.register("evaluate", self.MultiAn_evaluateFitness)
             toolbox.register("mate", self.custom_crossover) # tools.cxTwoPoint)
             
-            # toolbox.register("mutate",
-            #               tools.mutUniformInt,
-            #               low = low_series.to_list(), #[0, 0, 0, 0, 0, 0, 0],
-            #               up = up_series.to_list(), #[256, 256, 256, 256, 256, 256, 256],
-            #               indpb=0.2)
             amp_low  = low_series.tolist()
             amp_up   = up_series.tolist()
             
@@ -2914,7 +2475,6 @@ class cyPredict:
 
             for gen in range(NGEN):
                 
-                # self.track_time('\n7. Genetics algo in generations loop, start new loop')
 
                 offspring = algorithms.varAnd(population, toolbox, cxpb=CXPB, mutpb=MUTPB)
                 fits = toolbox.map(toolbox.evaluate, offspring)
@@ -2923,7 +2483,6 @@ class cyPredict:
                     ind.fitness.values = fit
                     count += 1
                     
-                # self.track_time('8. Genetics algo in generations loop, loop ended')                   
 
                 population = toolbox.select(offspring, k=len(population))
 
@@ -2946,12 +2505,8 @@ class cyPredict:
                 print('\tbest_fitness: ' + str(best_fitness))
                 print("--------------------------------------------------------")
                 
-#             print("\tEvaluating fitness for individual:", best_individual)
-#             print("\tDominant cycles DF:")
-#             print(self.MultiAn_dominant_cycles_df[['peak_periods', 'peak_frequencies', 'peak_phases']])
 
 
-            # self.MultiAn_dominant_cycles_df['best_amplitudes'] = best_individual
             amplitudes, (frequencies, phases) = self.decode_individual(best_individual)
             self.MultiAn_dominant_cycles_df['best_amplitudes'] = amplitudes
             
@@ -2984,7 +2539,6 @@ class cyPredict:
             n_cycles = len(self.MultiAn_dominant_cycles_df)
             
             if 'single_range_goertzel_peak_amplitudes' in self.MultiAn_dominant_cycles_df.columns:
-                # amp_init = self.MultiAn_dominant_cycles_df['peak_amplitudes'].to_numpy()
                 scaler = MinMaxScaler(feature_range=(0, detrended_abs_max))
                 amp_init = scaler.fit_transform(self.MultiAn_dominant_cycles_df['single_range_goertzel_peak_amplitudes'].to_numpy().reshape(-1, 1)).flatten()
 
@@ -3020,11 +2574,9 @@ class cyPredict:
                 raise ValueError(f"Invalid amplitudes_inizialization_type: {amplitudes_inizialization_type}")
             
             # Frequencies.
-            # if self.frequencies_ft:
             initial_vector += freq_init.tolist()
             
             # Phases.
-            # if self.phases_ft:
             initial_vector += phase_init.tolist()
 
                 
@@ -3055,9 +2607,6 @@ class cyPredict:
         
             lb = []
             ub = []
-            # for a_min, f_min, p_min, a_max, f_max, p_max in zip(amp_min, freq_min, phase_min, amp_max, freq_max, phase_max):
-            #     lb.extend([a_min, f_min, p_min])
-            #     ub.extend([a_max, f_max, p_max])
 
             lb = amp_min.copy()
             ub = amp_max.copy()
@@ -3076,8 +2625,6 @@ class cyPredict:
                 fitness_result = self.MultiAn_evaluateFitness(flat_list, False)
                 return float(fitness_result[0]) if isinstance(fitness_result, tuple) else float(fitness_result)
 
-            # print("initial_vector: ")
-            # print(initial_vector)
 
             if(enabled_multiprocessing):
 
@@ -3099,8 +2646,6 @@ class cyPredict:
                     else:
                         start_rebuild_index = len(self.MultiAn_reference_detrended_data) - self.best_fit_start_back_period
 
-                # print("C++ rebuild_start_index:", start_rebuild_index)
-                # print("Signal length:", len(self.MultiAn_reference_detrended_data))
 
                 best_flat = run_genetic_algorithm_multicore(
                     self.MultiAn_reference_detrended_data.tolist(),  # reference_signal
@@ -3151,7 +2696,6 @@ class cyPredict:
             if len(best_flat) != 3 * n:
                 raise ValueError(f"best_flat ha {len(best_flat)} elementi, ma me ne aspettavo {3 * n}")
 
-            # assert len(best_flat) == expected_len, f"best_flat has {len(best_flat)} elements, expected {expected_len}"
             
             amp = best_flat[0:n]
             freq = best_flat[n:2*n]
@@ -3167,7 +2711,6 @@ class cyPredict:
 
 
 
-            # self.MultiAn_dominant_cycles_df['best_fitness'] = self.MultiAn_evaluateFitness(self.MultiAn_dominant_cycles_df, False)
 
             if self.frequencies_ft and self.phases_ft:
                 individual = np.concatenate([amp, freq, phase])
@@ -3182,14 +2725,6 @@ class cyPredict:
             self.MultiAn_dominant_cycles_df['best_fitness'] = self.MultiAn_evaluateFitness(individual, False)
 
 
-            # print(f'best_frequencies')
-            # print(self.MultiAn_dominant_cycles_df['best_frequencies'])
-            # print(f'best_amplitudes')
-            # print(self.MultiAn_dominant_cycles_df['best_amplitudes'])
-            # print(f'best_phases')
-            # print(self.MultiAn_dominant_cycles_df['best_phases'])
-            # print(f'best_fitness')
-            # print(self.MultiAn_dominant_cycles_df['best_fitness'])
         
             if self.print_activity_remarks:
                 print("\n\n--------------------------------------------------------")
@@ -3199,9 +2734,6 @@ class cyPredict:
         
             self.track_time('6. C++ Genetic Optimization end')
         
-            # amplitudes = best_array[:, 0]
-            # frequencies = best_array[:, 1]
-            # phases = best_array[:, 2]
 
             best_fitness_value = self.MultiAn_dominant_cycles_df['best_fitness']
 
@@ -3232,12 +2764,7 @@ class cyPredict:
 
 
             
-            # best_fitness_value = best_fitness
 
-            # # Assegna i valori alla tabella dei cicli dominanti
-            # self.MultiAn_dominant_cycles_df["amplitude"] = amplitudes
-            # self.MultiAn_dominant_cycles_df["frequency"] = frequencies
-            # self.MultiAn_dominant_cycles_df["phase"] = phases
 
             print(f'Best fitness: {best_fitness_value}')
 
@@ -3278,10 +2805,7 @@ class cyPredict:
                 else:
                     self.MultiAn_dominant_cycles_df['phase'] = self.MultiAn_dominant_cycles_df['peak_phases']
             
-                # # Ora individual è completo e della lunghezza giusta
-                # fitness = self.MultiAn_evaluateFitness(individual, False)
                 
-                # return fitness
 
                 # Keep return_list_type=True because MultiAn_evaluateFitness returns a tuple.
                 fitness = self.MultiAn_evaluateFitness(individual, return_list_type=True)
@@ -3291,7 +2815,6 @@ class cyPredict:
 
 
             # Define the Hyperopt search space in vector order.
-            # space = {f'amplitude_{i}': hp.uniform(f'amplitude_{i}', low_series[i], up_series[i]) for i in range(len(low_series))}
             space = {f'amplitude_{i}': hp.uniform(f'amplitude_{i}', low_series[i], up_series[i]) for i in range(len(low_series))}
 
             n_cycles = len(self.MultiAn_dominant_cycles_df)
@@ -3406,11 +2929,7 @@ class cyPredict:
             self.track_time('10. Genetics end composite and alignmentsKPI signal creation')
 
         
-        # max_start_index = 0
-        # start_index = end_rebuilt_signal_index - num_samples
 
-        # if(start_index > max_start_index):
-        #     max_start_index = start_index
         start_index = index_of_max_time_for_cd - num_samples    
 
 
@@ -3430,7 +2949,6 @@ class cyPredict:
 
         CDC_scaler = MinMaxScaler(feature_range=(CDC_min , CDC_max ))
 
-        # display(composite_signal['composite_signal'])
         
         scaled_signals['scaled_composite_signal'] = scaled_composite_signal  = CDC_scaler.fit_transform( composite_signal['composite_signal'].values.reshape(-1, 1) ).flatten()
         scaled_signals['scaled_goertzel_composite_signal'] = scaled_goertzel_composite_signal = CDC_scaler.fit_transform( composite_signal['goertzel_composite_signal'].values.reshape(-1, 1) ).flatten()
@@ -3683,8 +3201,6 @@ class cyPredict:
                 ymax = visible_y.max()
                 range_y = ymax - ymin
             
-                # # Padding generoso se variazione è piccola
-                # padding = max(range_y * 0.25, 20)
             
 
                 fig.update_yaxes(
@@ -3703,7 +3219,6 @@ class cyPredict:
                 ymin2 = visible_cdc.min()
                 ymax2 = visible_cdc.max()
                 range_y2 = ymax2 - ymin2
-                # padding2 = max(range_y2 * 0.25, 20)
             
                 fig.update_yaxes(
                     range=[ymin2 - 20, ymax2 + 20],
@@ -3786,19 +3301,15 @@ class cyPredict:
     def debug_check_complex_col(self, colname):
         """ Stampa le righe con valori complessi nella colonna colname. """
         if colname not in self.MultiAn_dominant_cycles_df.columns:
-            # print(f"DEBUG: colonna '{colname}' non trovata in MultiAn_dominant_cycles_df.")
             return
     
         df = self.MultiAn_dominant_cycles_df
         complex_mask = df[colname].apply(lambda val: isinstance(val, complex))
         if complex_mask.any():
-            # print(f"DEBUG: colonna '{colname}' ha valori complessi nelle seguenti righe:")
             indices = df.index[complex_mask]
             for i in indices:
                 val = df.at[i, colname]
                 print(f"  -> index={i}, {colname}={val}")
-        # else:
-        #     print(f"DEBUG: colonna '{colname}' non contiene valori complessi.")
 
 
     def debug_check_complex_values(self):
@@ -3826,7 +3337,6 @@ class cyPredict:
             temp_period = row['peak_periods'] #  1/row['peak_frequencies']
             new_column_name = composite_signal_column_name + '_refact_dominant_circle_signal_period_' + str(temp_period)
             composite_signal[new_column_name] = 0.0
-            # composite_signal['temp_goertzel_refactored_cycle'] = 0
 
             remanant_length = np.int64(max_length_series - row['start_rebuilt_signal_index'])
             time = np.linspace(0, remanant_length, remanant_length, endpoint=False)
@@ -3864,7 +3374,6 @@ class cyPredict:
         data['savgol_MACD_signal_' + str(indicators_period)] = savgol_filter(data['savgol_MACD_' + str(indicators_period)] , int(indicators_period*2), 2)
         data['savgol_MACD_hist_' + str(indicators_period)] = data['savgol_MACD_' + str(indicators_period)] - data['savgol_MACD_signal_' + str(indicators_period)]
 
-        #signals_results['dominant_scaled_amplitude_analysis']['MACD_' + str(indicators_period)]
         indicator_parameters = {
                                 'dominant_period': dominant_period,
                                 'indicators_period': indicators_period,
@@ -3898,13 +3407,10 @@ class cyPredict:
 
         data['smoothed_RSI_' + str(indicators_period)] = pd.Series([np.nan] * data_len)
         data.iloc[0:end_rebuilt_signal_index+1, data.columns.get_loc('smoothed_RSI_' + str(indicators_period))] = savgol_filter(data['RSI_' + str(indicators_period)][0:end_rebuilt_signal_index+1], indicators_period, polyorder)  #   ['smoothed_RSI_' + str(indicators_period)].iloc[0:end_rebuilt_signal_index+1] = savgol_filter(data['RSI_' + str(indicators_period)][0:end_rebuilt_signal_index+1], indicators_period, polyorder)
-        # data['smoothed_RSI_' + str(indicators_period)] = data['smoothed_RSI_' + str(indicators_period)]
 
         data['smoothed_RSI_derivate_' + str(indicators_period)] = pd.Series([np.nan] * data_len)
         data['smoothed_RSI_derivate_' + str(indicators_period)] = data['smoothed_RSI_' + str(indicators_period)][0:end_rebuilt_signal_index+1].diff()
-        # data['smoothed_RSI_derivate_' + str(indicators_period)] = data['smoothed_RSI_derivate_' + str(indicators_period)]
 
-        # signals_results['dominant_scaled_amplitude_analysis']['RSI_' + str(indicators_period)]
         indicator_parameters = {
                                 'dominant_period': dominant_period,
                                 'indicator_period': indicators_period,
@@ -3941,7 +3447,6 @@ class cyPredict:
         data[delta_column_name] = averages_delta
 
 
-#         signals_results['dominant_scaled_amplitude_analysis'][delta_column_name]
         indicator_parameters =  {
                                     'dominant_period': dominant_period,
                                     'long_average_period': round(dominant_period),
@@ -3985,8 +3490,6 @@ class cyPredict:
         total_length = len(data)
         len_before = len(signal)
 
-        # print(f'data len: {total_length}')
-        # print(f'signal len: {len_before}')
 
 
         rebuilt_sig_left_zeros = np.zeros(start_rebuilt_signal_index ) #+ 1
@@ -3995,12 +3498,8 @@ class cyPredict:
         
         
         len_after_left = len(signal)
-        # print(f"signal len after adding left zeros: {len_after_left}")
         
 
-            # np.set_printoptions(threshold=np.inf)
-        # print('signal before')
-        # display(signal)
 
         rebuilt_sig_right_zeros = 0
 
@@ -4012,134 +3511,21 @@ class cyPredict:
             # this ensures to limit the added rebuilt signal to the max current time (last sample index of original data)
             signal = signal[0:(total_length)]
         
-        # print(f"signal len after adding right zeros: {len(signal)}")
-        # print(f"last signal element before adding zeros to right: {signal[-1]}")
-        # print(f"last signal element INDEX before adding zeros to right: {len(signal) - 1}")
 
         
-        # if the projection exceed the original data index, calculate the extension length
         projection_periods_extetions = 0
         if(len(signal) > total_length):
             projection_periods_extetions = len(signal) - total_length
             
 
-        # print('signal after')
-        # display(signal)
             
         # Se i segnaposti a destra non bastano
         projection_periods_extensions = 0
         if len(signal) > total_length:
             projection_periods_extensions = len(signal) - total_length
         
-        # print(f"[DEBUG-daily] final signal len={len(signal)}, extension_periods={projection_periods_extensions}\n")
 
         return signal, projection_periods_extetions
-
-
-#     def goertzel_DFT(self, testdata, testcycle_length, debug = False):
-
-# #         print("\ntest data type: " +str(type(testdata)))
-
-#         if isinstance(testdata, pd.Series):
-#             testdata = testdata.to_numpy()
-
-
-#         data_length = len(testdata)
-
-#         real = 0
-#         imag = 0
-#         r1, i1 = 0, 0
-#         SN, CN = 0, 0
-#         test_freq = 1 / testcycle_length
-#         coeff = 2.0 * math.cos(2.0 * math.pi * test_freq)
-#         Q0, Q1, Q2, omega, sine, cosine, temp = 0, 0, 0, 0, 0, 0, 0
-
-
-#         for i in range(data_length):
-#             if((debug != False) & (data_length < 95)):
-#                 print("\ni: " + str(i))
-#                 print("\tcoeff: " + str(coeff))
-#                 print("\tdata_length: " + str(data_length))
-#                 print("\ttestdata[i]: " + str(testdata[i]))
-#                 print("\tQ0: " + str(Q0))
-#                 print("\tQ1: " + str(Q1))
-#                 print("\tQ2: " + str(Q2))
-                
-#             Q0 = coeff * Q1 - Q2 + testdata[i] #.iloc[i]
-#             Q2 = Q1
-#             Q1 = Q0
-
-#         if((debug != False) & (data_length < 95)):
-#             print("\ni: " + str(i))
-#             print("\tdata_length: " + str(data_length))
-#             print("\ttestdata[i]: " + str(testdata[i]))
-#             print("\tQ0h: " + str(Q0))
-#             print("\tQ1: " + str(Q1))
-#             print("\tQ2: " + str(Q2))
-
-#         r1 = Q1 - Q2 * math.cos(2.0 * math.pi * test_freq)
-#         i1 = Q2 * math.sin(2.0 * math.pi * test_freq)
-#         CN = math.cos((data_length - 1) * 2.0 * math.pi * test_freq)
-#         SN = math.sin((data_length - 1) * 2.0 * math.pi * test_freq)
-#         real = r1 * CN + i1 * SN
-#         imag = i1 * CN - r1 * SN
-#         amp2 = (2.0 * math.sqrt(real**2 + imag**2)) #/ data_length
-#         phase2 = math.pi / 2 + math.atan2(imag, real)
-#         temp = phase2 / (2.0 * math.pi)
-#         minoffset = testcycle_length * ((math.pi + (math.pi / 2)) / (2 * math.pi) - temp)
-
-#         residual_t = data_length % testcycle_length
-#         argument = 2 * math.pi * (1 / testcycle_length) * residual_t + phase2
-
-#         # print("\nNew loop:")
-
-#         if(argument <= math.pi/2):
-#             # print("\tPOINT 1")
-#             maxoffset = round( ( (math.pi / 2) - argument ) * testcycle_length / ( 2 * math.pi) )
-#         elif(math.pi/2 < argument <= (math.pi * 5 / 2)):
-#             # print("\tPOINT 2")
-#             maxoffset = round( ( (math.pi * 5 / 2) - argument ) * testcycle_length / ( 2 * math.pi) )
-#         elif((math.pi * 5 / 2) < argument):
-#             # print("\tPOINT 3")
-#             maxoffset = round( ( (math.pi * 9 / 2) - argument ) * testcycle_length / ( 2 * math.pi) )
-#         else:
-
-
-#             print("\tdata_length: " + str(data_length))
-#             print("\ttestcycle_length: " + str(testcycle_length))
-#             print("\tresidual_t: " + str(residual_t))
-#             print("\tphase2: " + str(phase2))
-#             print("\targument: " + str(argument))
-#             print("\treal: " + str(real))
-#             print("\timag: " + str(imag))
-#             print("\tCN: " + str(CN))
-#             print("\tSN: " + str(SN))
-#             print("\tr1: " + str(r1))
-#             print("\ti1: " + str(i1))
-#             print("\ttest_freq: " + str(test_freq))
-#             print("\tQ0: " + str(Q0))
-#             print("\tQ1: " + str(Q1))
-#             print("\tQ2: " + str(Q2))
-
-#         if(math.isnan(residual_t) or residual_t is None):
-
-#             print("\t\tTestdata[i] == Nan")
-#             print("\t\t count Nan: " + str(np.isnan(testdata).sum()))
-#             print(testdata)
-
-
-#         if(maxoffset < 0):
-#             print("argument: " + str(argument))
-#             print("maxoffset: " + str(maxoffset))
-
-#         if(argument < (math.pi * 3 / 2)):
-#             minoffset2 = round( ( (math.pi * 3 / 2) - argument ) * testcycle_length / ( 2 * math.pi) )
-
-#         else:
-#             minoffset2 = round( ( (math.pi * 7 / 2) - argument ) * testcycle_length / ( 2 * math.pi) )
-
-#         return amp2, phase2, minoffset, minoffset2, maxoffset
-
 
 
     def get_row_score(self, row):
@@ -4158,8 +3544,6 @@ class cyPredict:
         global_score = pd.DataFrame()
 
         # Seleziona solo le colonne desiderate da data
-        # data_ascending = data[ascending_columns]
-        # data_descending = data[descending_columns]
 
         data_ascending = df[ascending_columns].rank(ascending=True, axis=0)
         data_descending = df[descending_columns].rank(ascending=False, axis=0)
@@ -4199,7 +3583,6 @@ class cyPredict:
                                                 jp_filter_h = 100,
                                                 bartel_peaks_filtering = True,
                                                 centered_averages = True,
-#                                                 time_zone = 'America/New_York',
                                                 other_correlations = True,
                                                 include_calibrated_MACD = False,
                                                 include_calibrated_RSI = False,
@@ -4280,7 +3663,6 @@ class cyPredict:
                                                         data_column_name = 'Close',
                                                         current_date = current_date,
                                                         periods_pars = cycles_parameters,   
-#                                                         time_zone = 'America/New_York',
                                                         pars_from_opt_file = False,
                                                         files_path_name = None,
                                                         population_n = 10,
@@ -4308,9 +3690,6 @@ class cyPredict:
                                                         time_tracking = self.time_tracking
                                                         )
 
-      # CONTROLLARE: perchè best_fit_start_back_period non è passato alla funzione di sopra. Qui si controlla solo su un numero di 
-      # periodi pari a best_fit_start_back_period la fitness, ma l'elaborazione del segnale non sembra esser fatta ottimizzando 
-      # questa porzione
 
 
         if(composite_signal.isna().any().any()):
@@ -4382,7 +3761,6 @@ class cyPredict:
                                                             best_fit_start_back_period = best_fit_start_back_period
                                                           )
             
-            # print(f'\ttemp_fitness: {temp_fitness}')
 
             fitness += temp_fitness
 
@@ -4393,7 +3771,6 @@ class cyPredict:
         if(count > 0):
             fitness = fitness / count
 
-        # print(f'\t--> Final fitness: {fitness} for {index} days')
 
         return fitness
 
@@ -4510,20 +3887,11 @@ class cyPredict:
         
         
 
-#     def MultiAn_initializeIndividual(self):
 
-#         random_init = []
 
-# #         print("in MultiAn_initializeIndividual")
-# #         display(self.MultiAn_dominant_cycles_df)
 
-#         for _ in range(len(self.MultiAn_dominant_cycles_df)):
-# #             print('\t-->self.MultiAn_detrended_max: ' + str(self.MultiAn_detrended_max))
-#             random_init.append( random.randint(0, int(self.MultiAn_detrended_max)) )
             
-# #         print(f"Initialized individual: {random_init}")
 
-#         return random_init
 
 
     def discretized_uniform(self, low, up, levels=400):
@@ -4630,114 +3998,6 @@ class cyPredict:
     
 
 
-
-
-    # def MultiAn_evaluateFitness(self, individual, return_list_type = True):
-        
-    #     # Verifica che individual e MultiAn_reference_detrended_data siano array NumPy
-    #     if not isinstance(individual, np.ndarray):
-    #         individual = np.array(individual, dtype=np.float64)
-
-    #     if not isinstance(self.MultiAn_reference_detrended_data, np.ndarray):
-    #         self.MultiAn_reference_detrended_data = np.array(self.MultiAn_reference_detrended_data, dtype=np.float64)
-
-    #     # Verifica che len_series sia un intero
-    #     len_series = len(self.MultiAn_reference_detrended_data)
-
-    #     # Verifica che period_related_rebuild_multiplier sia un double
-    #     period_related_rebuild_multiplier = float(self.period_related_rebuild_multiplier)
-
-    #     # Verifica che fitness_type sia una stringa
-    #     fitness_type = str(self.MultiAn_fitness_type)
-          
-    #     # Converte il dataframe in una lista di dizionari
-    #     if isinstance(self.MultiAn_dominant_cycles_df, pd.DataFrame):
-            
-    #         # dominant_cycles_list = self.MultiAn_dominant_cycles_df.to_dict(orient="records")
-            
-    #         df = self.MultiAn_dominant_cycles_df.copy()
-            
-    #         n = len(df)
-    #         cursor = 0
-    #         amplitudes = individual[cursor:cursor+n]
-    #         cursor += n
-            
-    #         frequencies = None
-    #         if self.frequencies_ft:
-    #             frequencies = individual[cursor:cursor+n]
-    #             cursor += n
-            
-    #         phases = None
-    #         if self.phases_ft:
-    #             phases = individual[cursor:cursor+n]
-    #             cursor += n
-            
-    #         df['amplitude'] = amplitudes
-            
-    #         if frequencies is not None and len(frequencies) == len(df):
-    #             df['frequency'] = frequencies
-    #         else:
-    #             df['frequency'] = df['peak_frequencies']
-            
-    #         if phases is not None and len(phases) == len(df):
-    #             df['phase'] = phases
-    #         else:
-    #             df['phase'] = df['peak_phases']
-            
-    #         dominant_cycles_list = df.to_dict(orient="records")
-
-
-    #     else:
-    #         raise TypeError("MultiAn_dominant_cycles_df deve essere un DataFrame")
-
-    #     assert isinstance(dominant_cycles_list, list)
-
-    #     for cycle in dominant_cycles_list:
-    #         assert isinstance(cycle, dict)
-    #         assert 'peak_frequencies' in cycle
-    #         assert 'peak_phases' in cycle
-    #         assert 'peak_periods' in cycle
-    #         assert 'start_rebuilt_signal_index' in cycle
-            
-    #     assert individual.dtype == np.float64
-    #     assert self.MultiAn_reference_detrended_data.dtype == np.float64
-        
-
-    #     if(return_list_type):
-    #         return_list_type_bool = 1
-    #     else:
-    #         return_list_type_bool = 0
-            
-    #     if(self.best_fit_start_back_period is None):
-    #         best_fit_start_back_period_int = 0
-    #     else:
-    #         best_fit_start_back_period_int = self.best_fit_start_back_period
-            
-    #     if(self.period_related_rebuild_range is False):
-    #         period_related_rebuild_range_int = 0
-    #     else:
-    #         period_related_rebuild_range_int = 1
-            
-
-    #     fitness = evaluate_fitness(
-    #                             individual,
-    #                             self.MultiAn_reference_detrended_data,
-    #                             dominant_cycles_list,
-    #                             len(self.MultiAn_reference_detrended_data),
-    #                             best_fit_start_back_period_int,
-    #                             period_related_rebuild_range_int,
-    #                             period_related_rebuild_multiplier,
-    #                             self.MultiAn_fitness_type,
-    #                             return_list_type_bool
-    #                            )
-
-      
-    #     # print(f'fitness {fitness}')
-
-    #     assert not np.isnan(fitness), "fitness è NaN"
-    #     assert np.isfinite(fitness), "fitness è inf o -inf"
-        
-    #     return fitness
 
 
     def decode_individual(self, individual):
@@ -4852,14 +4112,12 @@ class cyPredict:
         
         # Debug finale
         for i in range(len(x0)):
-            # print(f"param {i}: x0={x0[i]} ({type(x0[i])}), lb={lb[i]}, ub={ub[i]}")
             assert isinstance(x0[i], float), f"x0[{i}] non è float puro!"
             assert lb[i] <= x0[i] <= ub[i], f"x0[{i}] fuori dai bounds!"
         
         best_x = opt.optimize(x0)
         best_fitness = opt.last_optimum_value()
 
-        # print(f'Best fitness: {best_fitness}')
         
         return best_x, best_fitness        
 
@@ -4884,7 +4142,6 @@ class cyPredict:
         #    periods 
         # 3. finally it evaluate a period equal to the longest rebuilt cycle if best_fit_start_back_period == None or 0; otherwise, it 
         #    starts the comparison between the original detrended signal and the rebuilt one from the index 
-        #    len(self.MultiAn_reference_detrended_data) - self.best_fit_start_back_period
 
         for index, row in self.MultiAn_dominant_cycles_df.iterrows():
 
@@ -4923,7 +4180,6 @@ class cyPredict:
         
         if(self.MultiAn_fitness_type == "mse"):
 
-            # fitness = mean_squared_error(self.MultiAn_reference_detrended_data[max_pos:], scaler.fit_transform( composite_dominant_cycle_signal[max_pos:].values.reshape(-1, 1)).flatten() * 100) # composite_dominant_cycle_signal[max_pos:])
 
             fitness = mean_squared_error(self.MultiAn_reference_detrended_data[max_pos:], composite_dominant_cycle_signal[max_pos:]) # 
             
@@ -4933,7 +4189,6 @@ class cyPredict:
             maxes = argrelextrema(composite_dominant_cycle_signal[max_pos:].values, np.greater)[0]
             peaks_indexes = np.concatenate([mins, maxes])
 
-            # fitness = mean_squared_error(self.MultiAn_reference_detrended_data[max_pos:].iloc[peaks_indexes], scaler.fit_transform( composite_dominant_cycle_signal[max_pos:].iloc[peaks_indexes].values.reshape(-1, 1)).flatten() * 100)
 
             fitness = mean_squared_error(self.MultiAn_reference_detrended_data[max_pos:].iloc[peaks_indexes], composite_dominant_cycle_signal[max_pos:].iloc[peaks_indexes])
 
@@ -4949,16 +4204,11 @@ class cyPredict:
     def MultiAn_cyclesAlignKPI(self, signals, start_position, weights = None, periods = None):
 
         last_position = len(signals) #- 1
-#         kpi_series = pd.Series([0] * start_position)
-#         weigthed_kpi_series = pd.Series([0] * start_position)
 
         # Pre-fill positions before the first rebuildable index with zeros.
         kpi_series = pd.Series([0] * start_position, dtype=np.int64)
         weigthed_kpi_series = pd.Series([0] * start_position, dtype=np.int64)
         
-#         print(f'start_position {start_position}, last_position {last_position}')
-#         print(f'len kpi_series {len(kpi_series)}')
-#         print(f'signal columns: {signals.columns}')       
         
         peaks_min_df = {} #pd.DataFrame()
         peaks_max_df = {} # pd.DataFrame()
@@ -4970,7 +4220,6 @@ class cyPredict:
             peaks_max_df[column] = argrelmax(signals[column].values)[0]
 
 
-        # if(weights != None):
         if weights is not None and len(weights) > 0:
 
             weigths_sum = sum(weights)
@@ -4981,26 +4230,19 @@ class cyPredict:
 
         for position in range(start_position, last_position):
 
-            # print('\tposition: ' + str(position))
             kpi = 0
             weigthed_kpi = 0
 
-            # print("\n")
 
             weigths_index = 0
 
             for column in signals.columns:
 
-#                 print('\ncolumn: ' + str(column) )
                 # Reuse precomputed local minima and maxima.
-#                 peaks_min = argrelmin(signals[column].values)[0]
-#                 peaks_max = argrelmax(signals[column].values)[0]
 
                 peaks_min = peaks_min_df[column]
                 peaks_max = peaks_max_df[column]
                 
-#                 print(f'peaks_min: {peaks_min}')
-#                 print(f'peaks_max: {peaks_max}')
 
                 # Candidate extrema before the current position.
                 peaks_min_before = [peak for peak in peaks_min if peak < position]
@@ -5058,10 +4300,6 @@ class cyPredict:
                 else:
                     next_peak_index = np.nan
                     
-#                 print(f'\tprevious_peak_index_max {previous_peak_index_max}')
-#                 print(f'\tprevious_peak_index_min {previous_peak_index_min}')
-#                 print(f'\tprevious_peak_index {previous_peak_index}')
-#                 print(f'\tprevious_peak_type {previous_peak_type}')
 
 
                 if not pd.isnull(previous_peak_index) and not pd.isnull(next_peak_index):
@@ -5083,7 +4321,6 @@ class cyPredict:
                         kpi += percentage
 
                     if weights is not None and len(weights) > 0:
-                    # if(weights != None):
 
                         if(periods is not None):
 
@@ -5103,38 +4340,17 @@ class cyPredict:
 
                 weigths_index += 1
                 
-#                 print(f'\tweigths_index {weigths_index}')
 
-#             kpi_series = kpi_series.append(pd.Series([kpi]), ignore_index=True)
-#             weigthed_kpi_series = weigthed_kpi_series.append(pd.Series([weigthed_kpi]), ignore_index=True)
         
             kpi_series = pd.concat([kpi_series, pd.Series([kpi])], ignore_index=True)
             weigthed_kpi_series = pd.concat([weigthed_kpi_series, pd.Series([weigthed_kpi])], ignore_index=True)
 
 
-#             has_nan_kpi_series = kpi_series.isna().any()
-#             # Stampa il risultato
-#             print(f"Ci sono valori NaN in kpi_series? {has_nan_kpi_series}")
 
-#             # Controlla la presenza di NaN nella nuova serie pd.Series([kpi])
-#             has_nan_kpi = pd.Series([kpi]).isna().any()
-#             # Stampa il risultato
-#             print(f"Ci sono valori NaN in pd.Series([kpi])? {has_nan_kpi}")
 
-#             # Stampa i tipi di dato delle serie
-#             print(f"Tipo di dato di kpi_series: {kpi_series.dtype}")
-#             print(f"Tipo di dato di pd.Series([kpi]): {pd.Series([kpi]).dtype}")
 
-#             # Concatena le serie
-#             kpi_series = pd.concat([kpi_series, pd.Series([kpi])], ignore_index=True)
-#             weigthed_kpi_series = pd.concat([weigthed_kpi_series, pd.Series([weigthed_kpi])], ignore_index=True)
 
-#             # Stampa i tipi di dato dopo la concatenazione
-#             print(f"Tipo di dato di kpi_series dopo la concatenazione: {kpi_series.dtype}")
-#             print(f"Tipo di dato di weigthed_kpi_series dopo la concatenazione: {weigthed_kpi_series.dtype}")
 
-#         print('kpi_series: ' + str(kpi_series.tail(50)))
-#         print('weigthed_kpi_series: ' + str(weigthed_kpi_series.tail(50)))
 
 
         return kpi_series, weigthed_kpi_series
@@ -5148,7 +4364,6 @@ class cyPredict:
         last_date = self.genOpt_last_date
         
         print(f'self.genOpt_last_date {self.genOpt_last_date}')
-#         logarithmic_sequence = self.genOpt_logarithmic_sequence
         periods_number = self.genOpt_periods_number
         period_related_rebuild_multiplier = 1
         linear_filter_window_size_multiplier = 1
@@ -5237,7 +4452,6 @@ class cyPredict:
                 
             )
             
-            # print(f'Par opt, fitness: {fitness}')
 
 
         except Exception as e:
@@ -5262,13 +4476,11 @@ class cyPredict:
             if(self.period_related_rebuild_range == True):
                 print(f'period_related_rebuild_multiplier: {period_related_rebuild_multiplier}')
 
-#             sys.exit()
 
             return (1e9, )
 
         else:
 
-#             print(f'fitness: {fitness}')
             return fitness,
 
 
@@ -5371,9 +4583,7 @@ class cyPredict:
                                         detrend_type = 'hp_filter', #'hp_filter', 'linear'
                                         windowing = None, # None 'kaiser',
                                         kaiser_beta = 3,
-#                                         linear_filter_window_size_multiplier = 1,
                                         period_related_rebuild_range = False,
-#                                         period_related_rebuild_multiplier = 2.5,
                                         population_n = 100, # Population number
                                         NGEN = 10,  # Generations number
                                         CXPB = 0.7,  # Crossover probability
@@ -5450,11 +4660,9 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         
         self.print_activity_remarks = print_activity_remarks
         
-        # if not specified use global class folder path
         if(folder_path is None):
             folder_path = self.data_storage_path 
         
-        # if not specified use default file name
         if(file_name is None):
             file_name = self.ticker +" - tf " + self.state['data_timeframe'] + " - cyclces_analysis_hypeparmeters_optimization"
 
@@ -5513,7 +4721,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         
         results_history = pd.DataFrame(columns=column_names)
 
-#         display(results_history)
 
         start_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -5541,7 +4748,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         # Build optimization domains according to detrending mode.
         
         if(self.period_related_rebuild_range == True): 
-#             self.period_related_rebuild_multiplier_sequence = np.arange(2, 6.05, 0.05).tolist()
             
             print('Creating period_related_rebuild_range')
         
@@ -5690,10 +4896,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         # Create the initial population.
         population = toolbox.population(n=population_n)
 
-#         folder_path = self.data_storage_path 
         
-#         if(file_name is None):
-#             file_name = self.ticker + "_cyclces_analysis_hypeparmeters_optimization"
         
         best_individual_num_samples = None
         best_individual_final_kept_n_dominant_circles = None
@@ -5879,12 +5082,9 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         clean_file_name = re.sub(r'[^a-zA-Z0-9_\-\s\=]', '', file_name)
         
         
-#         print(f"DataFrame going to: {clean_folder_name}")
-#         print(f"file name: {clean_file_name}")
 
         # Create the folder if it doesn't exist
         folder_path = os.path.join(os.getcwd(), clean_folder_name)
-#         print(f'Object filepath: {folder_path}')
         os.makedirs(folder_path, exist_ok=True)
 
         # Check if the file already exists
@@ -5897,8 +5097,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             existing_dataframe.reset_index(drop=True, inplace=True)
             dataframe.reset_index(drop=True, inplace=True)
             
-#             display(existing_dataframe)
-#             display(dataframe)
 
             # Concatenate the existing DataFrame with the new data
             combined_dataframe = pd.concat([existing_dataframe, dataframe], ignore_index=True)
@@ -5913,11 +5111,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
 
             elif(filter_column_name != None and filter_column_value != None):
 
-                # print('update_column: ' + update_column)
-                # print('update_column_name: ' + update_column_name)
-                # print('update_column_value: ' + update_column_value)
-                # print('filter_column_name: ' + filter_column_name)
-                # print('filter_column_value: ' + filter_column_value)
 
                 combined_dataframe.loc[combined_dataframe[filter_column_name] == filter_column_value, update_column_name] = update_column_value
 
@@ -5940,7 +5133,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                          delta_comparison_serie = None,
                          comparison_serie_name = ''):
 
-#         cdc_min_max_indices = np.concatenate((argrelextrema(data.values, np.less)[0], argrelextrema(data.values, np.greater)[0]))
         cdc_min_max_indices = np.concatenate((argrelextrema(data.values, np.less, order=1)[0], argrelextrema(data.values, np.greater, order=1)[0]))
         cdc_min_max_indices.sort()
 
@@ -5993,7 +5185,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         data_dict[suffix_col_name + 'CDC_trend'] = cdc_trend
         data_df = pd.DataFrame([data_dict])
 
-#         print('current_time_idx: ' + str(current_time_idx))
 
 
         return data_df
@@ -6003,7 +5194,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                 data_column_name,
                                                 current_date,
                                                 periods_pars,
-#                                                 time_zone = 'America/New_York',
                                                 pars_from_opt_file = False,
                                                 files_path_name = None,
                                                 population_n = 10,
@@ -6017,17 +5207,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                 bb_delta_fixed_periods = [8, 16],
                                                 bb_delta_sg_filter_window = None,
                                                 RSI_cycles_analysis_type = 'original_RSI', #'SG_smooted_RSI' # 'original_RSI',
-                                                # opt_algo_type = 'genetic', # 'genetic', 'tpe', 'atpe'
-                                                # detrend_type = 'hp_filter', #hp_filter linear
-                                                # linear_filter_window_size_multiplier = 1.85,
-                                                # period_related_rebuild_range = False,
-                                                # period_related_rebuild_multiplier = 1.2,
-                                                # show_charts = False,
-                                                # N_elements_prices_CDC = 6,
-                                                # N_elements_goertzel_CDC = 3,
-                                                # N_elements_alignmentsKPI_CDC = 10,
-                                                # N_elements_weigthed_alignmentsKPI_CDCC = 10,
-                                                # enabled_multiprocessing = True
 
 
                                                 opt_algo_type = 'cpp_genetic_amp_freq_phase', # 'cpp_genetic_amp_freq_phase' 'nlopt_amplitudes_freqs_phases', #'', # 'genetic_omny_frequencies', 'tpe', 'atpe'
@@ -6122,7 +5301,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                 data_column_name = data_column_name,
                                                 current_date = current_date, #'2024-01-18',
                                                 periods_pars = periods_pars,
-#                                                 time_zone = time_zone,
                                                 pars_from_opt_file = pars_from_opt_file,
                                                 files_path_name = files_path_name,
                                                 population_n = population_n,
@@ -6183,12 +5361,9 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         base_data = pd.DataFrame()
         base_data = pd.DataFrame([self.data.iloc[current_date_idx][['Open', 'Low', 'High', 'Close', 'Volume']].values], columns=['Open', 'Low', 'High', 'Close', 'Volume'])
 
-        # print(f"---> index_of_max_time_for_cd {index_of_max_time_for_cd} , len(scaled_signals['scaled_composite_signal']) {len(scaled_signals['scaled_composite_signal'])}")
-
-        # print(f"---> scaled_signals.iloc[index_of_max_time_for_cd] {scaled_signals.iloc[index_of_max_time_for_cd]}")
 
 
-        # print(f"--->current_date_idx {current_date_idx}, 'Open', 'Low', 'High', 'Close', 'Volume' {self.data.iloc[current_date_idx][['Open', 'Low', 'High', 'Close', 'Volume']]}")
+
 
 
         base_data['CO'] = base_data['Close'] - base_data['Open']
@@ -6331,7 +5506,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         
         # Resume from an existing CSV only when explicitly requested.
         if resume and os.path.exists(file_path_name):
-#             min_max_CDC_analysis_df = pd.read_csv(file_path_name, index_col=index_column_name, parse_dates=True)
             min_max_CDC_analysis_df = pd.read_csv(file_path_name, parse_dates=['datetime'])
 
             print("File CSV esistente caricato.")
@@ -6352,10 +5526,8 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             start_idx = 0
         filtered_data = self.data.iloc[start_idx:self.data.index.get_loc(pd.to_datetime(current_date)) + 1]
         
-#         print(f'Filtered data len {len(filtered_data)}')
         
         
-#         print(f'Number downloaded asset records: {len(filtered_data)}')
         
         # In resume mode, keep only dates not already present in the CSV.
         if not min_max_CDC_analysis_df.empty:            
@@ -6368,7 +5540,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
 
             # Process only missing rows.
             filtered_data = filtered_data.loc[missing_dates]
-#             print(f'Number of missing dates after further filtering: {len(filtered_data)}')
 
         else:
             print("Il file CSV è vuoto, quindi tutte le date sono considerate nuove.")
@@ -6377,7 +5548,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         # Build and append one wide feature row for each missing date.
         for date in filtered_data.index:
             # Preserve timezone information when formatting the analysis date.
-            # date_str = date.strftime('%Y-%m-%d')
 
             if date.tzinfo is None:
                 date_str = date.replace(tzinfo=pd.Timestamp.utcnow().tz).isoformat()
@@ -6394,7 +5564,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                 cycles_parameters = self.get_most_updated_optimization_pars(optimized_pars_filepath, date_str)
 
                 
-#                 cycles_parameters = cycles_parameters[['num_samples', 'final_kept_n_dominant_circles', 'min_period', 'max_period', 'hp_filter_lambda']]
                 
         
             if(min_period is not None):
@@ -6411,7 +5580,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                                                   data_column_name = 'Close',
                                                   current_date = date_str, #'2024-01-18',
                                                   periods_pars = cycles_parameters,
-#                                                   time_zone = 'America/New_York',
                                                   pars_from_opt_file = False,
                                                   files_path_name = None,
                                                   population_n = population_n,
@@ -6488,7 +5656,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
 
         for label, group in filtered_df.groupby('optimization_label'):
             
-#             print(f'Current date {current_date}')
 
             # Filtra solo le date che sono nel passato o uguali alla data corrente
             group = group[group['analysis_reference_date'] <= current_date]
