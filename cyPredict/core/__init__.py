@@ -7,6 +7,7 @@ from .diagnostics import DiagnosticsMixin
 from .extrema import ExtremaMixin
 from .indicators import IndicatorsMixin
 from .optimization import OptimizationMixin
+from .persistence import PersistenceMixin
 from .reconstruction import ReconstructionMixin
 from .scoring import ScoringMixin
 from .spectral import SpectralMixin
@@ -20,6 +21,7 @@ __all__ = [
     "ExtremaMixin",
     "IndicatorsMixin",
     "OptimizationMixin",
+    "PersistenceMixin",
     "ReconstructionMixin",
     "ScoringMixin",
     "SpectralMixin",
