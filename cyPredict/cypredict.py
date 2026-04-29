@@ -104,11 +104,12 @@ from pandas.tseries.offsets import BDay
 
 from .core.data import DataMixin
 from .core.dates import DatesMixin
+from .core.detrending import DetrendingMixin
 from .core.state import StateMixin
 
 
 
-class cyPredict(StateMixin, DataMixin, DatesMixin):
+class cyPredict(StateMixin, DataMixin, DatesMixin, DetrendingMixin):
     """Cycle-analysis engine for financial time series.
 
     The class downloads or loads OHLCV data, estimates dominant periods with
@@ -120,91 +121,6 @@ class cyPredict(StateMixin, DataMixin, DatesMixin):
     arguments are meaningful only for selected workflows; those mode-specific
     relationships are documented on the methods where they are consumed.
     """
-
-    def hp_filter(self, data, lambda_, ret=False):
-        nobs = len(data)
-
-        output = output = data.to_numpy(dtype=np.float64).copy() #np.copy(data)
-
-        if nobs <= 5:
-            print('nobs <= 5')
-            return None, 0  # Not enough data
-
-        a = np.zeros(nobs)
-        b = np.zeros(nobs)
-        c = np.zeros(nobs)
-
-        a[0] = 1.0 + lambda_
-        b[0] = -2.0 * lambda_
-        c[0] = lambda_
-
-        for i in range(1, nobs - 2):
-            a[i] = 6.0 * lambda_ + 1
-            b[i] = -4.0 * lambda_
-            c[i] = lambda_
-
-        a[1] = 5.0 * lambda_ + 1
-        a[nobs - 1] = 1.0 + lambda_
-        a[nobs - 2] = 5.0 * lambda_ + 1.0
-
-        b[nobs - 2] = -2.0 * lambda_
-
-        H1 = 0
-        H2 = 0
-        H3 = 0
-        H4 = 0
-        H5 = 0
-        HH1 = 0
-        HH2 = 0
-        HH3 = 0
-        HH4 = 0
-        HH5 = 0
-        Z = 0
-        HB = 0
-        HC = 0
-
-        for i in range(nobs):
-            Z = a[i] - H4 * H1 - HH5 * HH2
-            if Z == 0:
-                print(f"[DEBUG] Z==0 at i={i}, skipping.")
-                print(f"[DEBUG] i={i}, Z={Z}, a={a[i]}, b={b[i]}, c={c[i]}, H1={H1}, H2={H2}, H3={H3}")
-
-                return None, 3  # Division by zero
-            HB = b[i]
-            HH1 = H1
-            H1 = (HB - H4 * H2) / Z
-            b[i] = H1
-            HC = c[i]
-            HH2 = H2
-            H2 = HC / Z
-            c[i] = H2
-            a[i] = (output[i] - HH3 * HH5 - H3 * H4) / Z
-            HH3 = H3
-            H3 = a[i]
-            H4 = HB - H5 * HH1
-            HH5 = H5
-            H5 = HC
-
-        H2 = 0
-        H1 = a[nobs - 1]
-        output[nobs - 1] = H1
-
-        for i in range(nobs - 1, 0, -1):
-            output[i - 1] = a[i - 1] - b[i - 1] * H1 - c[i - 1] * H2
-            H2 = H1
-            H1 = output[i - 1]
-
-
-
-        if not ret:
-            output = data - output
-
-        
-
-
-        return output, 1
-
-
 
     def get_bartels_score(self, dataset, cycle_length, max_segments):
         bartelsscore = 0
@@ -261,62 +177,6 @@ class cyPredict(StateMixin, DataMixin, DatesMixin):
             bartelsscore = 1 / math.exp(b1 ** 2)
 
         return bartelsscore, segmentspassed
-
-
-
-    def jh_filter(self, y, p = 4, h = 8):
-        n = len(y)
-
-        print("p: " + str(p) + ", h: " +str(h))
-
-        # Initialize arrays for regression inputs and outputs
-        X = np.ones((n - h, p + 1))
-        y_est = np.zeros(n - h)
-
-        # Fill in the arrays
-        for i in range(p):
-            X[:, i+1] = y[i:n-h+i]
-        for i in range(n - h):
-            y_est[i] = y[i+h]
-
-        # Fit linear regression model
-        model = LinearRegression()
-        model.fit(X, y_est)
-
-        # Calculate the estimated cyclical component
-        cyclical_component = model.predict(X)
-
-        # Calculate residuals (detrended data)
-        detrended_y = y[h:] - cyclical_component
-
-        return detrended_y
-
-
-
-    def linear_detrend(self, data, window_size=0):
-
-        if window_size == 0:
-            break_points = 0
-        else:
-            total_length = len(data)
-            remainder = total_length % window_size
-            start_index = remainder  # Inizia dal punto in cui inizia la prima finestra completa
-            
-            num_complete_windows = (total_length - remainder) // window_size
-            break_points = [start_index + i * window_size for i in range(1, num_complete_windows)]
-            
-            # Assicurarsi che tutti i breakpoints siano validi
-            break_points = [bp for bp in break_points if bp < total_length]
-
-        
-        # Applicare il detrend solo alla porzione dei dati con finestre complete
-        detrended_data = scipy.signal.detrend(data[start_index:], type='linear', bp=[bp - start_index for bp in break_points])
-        
-        # Combina i dati esclusi inizialmente con i dati detrendati per mantenere la stessa lunghezza
-        detrended_data_full = np.concatenate((data[:start_index], detrended_data))
-        
-        return pd.Series(detrended_data_full, index=data.index)
-
 
 
 
@@ -5223,29 +5083,3 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
 
 
 
-    def detrend_lowess(self, signal, P_max, k=2):
-        """
-        Rimuove il trend da un segnale utilizzando LOWESS con una finestra configurabile.
-
-        Parameters:
-            signal (array): Il segnale da detrendere.
-            time (array): L'array di tempo corrispondente al segnale.
-            P_max (float): Il periodo massimo da conservare (i trend con periodi più lunghi saranno rimossi).
-            k (float): Fattore moltiplicativo per determinare la finestra LOWESS. Default = 2.
-
-        Returns:
-            trend (array): Il trend stimato.
-            residual (array): Il residuo (componente ciclica conservata).
-        """
-        # Determina la finestra basata sul periodo massimo e il fattore k
-        time =  np.arange(len(signal))
-        window = int(k * P_max)
-        frac = window / len(time)  # Calcola la frazione del segnale per LOWESS
-
-        # Calcola il trend usando LOWESS
-        trend = lowess(signal, time, frac=frac, return_sorted=False)
-
-        # Calcola il residuo (componente ciclica) - detrended signal
-        residual = signal - trend
-
-        return trend, residual
