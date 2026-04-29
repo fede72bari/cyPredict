@@ -107,6 +107,7 @@ from .core.dates import DatesMixin
 from .core.detrending import DetrendingMixin
 from .core.diagnostics import DiagnosticsMixin
 from .core.indicators import IndicatorsMixin
+from .core.optimization import OptimizationMixin
 from .core.reconstruction import ReconstructionMixin
 from .core.scoring import ScoringMixin
 from .core.spectral import SpectralMixin
@@ -122,6 +123,7 @@ class cyPredict(
     SpectralMixin,
     DiagnosticsMixin,
     IndicatorsMixin,
+    OptimizationMixin,
     ReconstructionMixin,
     ScoringMixin,
 ):
@@ -2653,18 +2655,6 @@ class cyPredict(
 
 
         return elaborated_data_series, signals_results_series, composite_signal, configurations_series, None, None, index_of_max_time_for_cd, scaled_signals, best_fitness_value
-
-
-    def custom_crossover(self, ind1, ind2):
-        
-        if len(ind1) > 1 and len(ind2) > 1:
-            # Esegui il crossover a due punti
-            return tools.cxTwoPoint(ind1, ind2)
-        else:
-            # Gestisci caso di individui con un solo gene
-            # Ad esempio, non fare nulla o applica una mutazione
-            return tools.cxUniform(ind1, ind2, 0.5)
-
 
 
     def trade_predicted_dominant_cicles_peaks(self,
