@@ -144,3 +144,14 @@ class cyPredict(
     arguments are meaningful only for selected workflows; those mode-specific
     relationships are documented on the methods where they are consumed.
     """
+
+
+# Backward compatibility for notebooks that do:
+# ``from cyPredict import cyPredict`` and then call ``cyPredict.cyPredict(...)``.
+cyPredict.cyPredict = cyPredict
+
+
+# Preserve both historical calling styles:
+# - from cyPredict import cyPredict; cyPredict(...)
+# - from cyPredict import cyPredict; cyPredict.cyPredict(...)
+cyPredict.cyPredict = cyPredict

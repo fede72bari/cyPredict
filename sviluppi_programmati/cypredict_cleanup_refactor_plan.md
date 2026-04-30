@@ -171,6 +171,16 @@ Rendere la repo clonabile, importabile e pulita senza toccare il comportamento.
 
 `python -m pip install -e .` deve permettere `import cypredict` o l'import legacy deciso.
 
+### Stato aggiornato
+
+Milestone 1 chiusa sul criterio legacy deciso: `python -m pip install -e .`
+in ambiente `cyenv` completa correttamente e permette `from cyPredict import
+cyPredict`. La repo contiene `.gitignore`, `pyproject.toml`, README, cartelle
+`docs/`, `scripts/`, `tests/`, `examples/` e `native/`. Gli esempi minimi sono
+separati dai notebook di ricerca: `examples/minimal_import.py` non scarica dati
+e verifica solo import e path native. Lo script `scripts/verify_packaging.ps1`
+rende ripetibile il controllo install/editable/import.
+
 ## Milestone 2 - Mappa API, parametri e uso reale
 
 ### Scopo

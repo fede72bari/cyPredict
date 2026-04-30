@@ -40,6 +40,18 @@ model = cyPredict.cyPredict(
 )
 ```
 
+For a no-download import check, run:
+
+```powershell
+python .\examples\minimal_import.py
+```
+
+Packaging can be verified with the project script:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify_packaging.ps1
+```
+
 ## Cleanup Priorities
 
 1. Establish golden baseline tests for daily, intraday, file-based, and multirange scenarios.
