@@ -21,7 +21,7 @@ Generated files such as `.pyd`, `build/`, Visual Studio, and CMake outputs are i
 Build with:
 
 ```powershell
-.\scripts\build_native.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_native.ps1
 ```
 
 The build script defaults to the Anaconda environment interpreter:
@@ -30,3 +30,7 @@ The build script defaults to the Anaconda environment interpreter:
 C:\Users\Federico\anaconda3\envs\cyenv\python.exe
 ```
 
+The default build output is each module's `build/lib.*` directory. cyPredict
+prefers those build directories at import time, then falls back to in-place
+`.pyd` files. Use `-InPlace` only after closing Python processes that may have
+loaded the previous native modules.

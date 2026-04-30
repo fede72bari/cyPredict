@@ -17,9 +17,22 @@ from scipy.signal import argrelextrema, find_peaks, savgol_filter
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
+from ..native_imports import (
+    REQUIRED_CYGAOPT_ABI_VERSION,
+    ensure_native_module_paths,
+    require_native_abi,
+)
+
+ensure_native_module_paths()
+
+import cyGAopt
+import cyGAoptMultiCore
 from cyGAopt import run_genetic_algorithm
 from cyGAoptMultiCore import run_genetic_algorithm as run_genetic_algorithm_multicore
 from goertzel import goertzel_DFT
+
+require_native_abi(cyGAopt, "cyGAopt", REQUIRED_CYGAOPT_ABI_VERSION)
+require_native_abi(cyGAoptMultiCore, "cyGAoptMultiCore", REQUIRED_CYGAOPT_ABI_VERSION)
 
 
 class MultiperiodMixin:
@@ -60,6 +73,7 @@ class MultiperiodMixin:
                              log_to_file = None,
                              log_dir = None,
                              log_run_id = None,
+                             random_seed = None,
                             ):
         """Run multiple period ranges and refit the combined cycle signal.
 
@@ -141,6 +155,9 @@ class MultiperiodMixin:
             Structured logging override for this analysis call. These values
             update the instance logger before the workflow starts. Leave them
             unset to keep the constructor logging configuration.
+        random_seed : int, optional
+            Seed passed to Python and C++ stochastic optimizers. Leave unset to
+            keep non-deterministic genetic runs.
         Returns
         -------
         tuple
@@ -181,6 +198,10 @@ class MultiperiodMixin:
                 log_run_id=log_run_id,
             )
 
+        if random_seed is not None:
+            random.seed(random_seed)
+            np.random.seed(random_seed)
+
         self.log_info(
             "multiperiod_analysis started",
             function="multiperiod_analysis",
@@ -188,6 +209,7 @@ class MultiperiodMixin:
             windowing=windowing,
             kaiser_beta=kaiser_beta,
             opt_algo_type=opt_algo_type,
+            random_seed=random_seed,
         )
         scaler = self.scaler
         
@@ -859,7 +881,15 @@ class MultiperiodMixin:
                     optimize_phases=self.phases_ft,
                     start_rebuild_index=int(start_rebuild_index),
                     period_related_rebuild_range=self.period_related_rebuild_range,
-                    period_multiplier=self.period_related_rebuild_multiplier
+                    period_multiplier=self.period_related_rebuild_multiplier,
+                    peak_frequencies=self.MultiAn_dominant_cycles_df["peak_frequencies"].astype(float).tolist(),
+                    peak_phases=self.MultiAn_dominant_cycles_df["peak_phases"].astype(float).tolist(),
+                    peak_periods=self.MultiAn_dominant_cycles_df["peak_periods"].astype(float).tolist(),
+                    start_indices=self.MultiAn_dominant_cycles_df["start_rebuilt_signal_index"].astype(int).tolist(),
+                    best_fit_start_back_period=int(self.best_fit_start_back_period or 0),
+                    fitness_type=str(self.MultiAn_fitness_type),
+                    seed=int(random_seed) if random_seed is not None else -1,
+                    threads=multiprocessing.cpu_count()
                 )
 
 
@@ -869,34 +899,26 @@ class MultiperiodMixin:
 
                 self.log_info("Running C++ single-core genetic optimizer", function="multiperiod_analysis")
 
-                try:
-                    best_flat = run_genetic_algorithm(
-                        fitness_func_cpp,
-                        population_n,
-                        CXPB,
-                        MUTPB,
-                        NGEN,
-                        gene_length,
-                        lb,
-                        ub,
-                        discretization_steps,
-                        initial_vector,
-                        n_cycles
-                    )
-                except TypeError as exc:
-                    if "incompatible function arguments" not in str(exc):
-                        raise
-                    best_flat = run_genetic_algorithm(
-                        fitness_func_cpp,
-                        population_n,
-                        CXPB,
-                        MUTPB,
-                        NGEN,
-                        gene_length,
-                        lb,
-                        ub,
-                        discretization_steps
-                    )
+                best_flat = run_genetic_algorithm(
+                    fitness_func_cpp,
+                    population_n,
+                    CXPB,
+                    MUTPB,
+                    NGEN,
+                    gene_length,
+                    lb,
+                    ub,
+                    discretization_steps,
+                    initial_vector,
+                    n_cycles,
+                    genetic_elitism=True,
+                    elitism_elements=10,
+                    initial_random_amplitudes=initial_random_amplitudes,
+                    optimize_amplitudes=True,
+                    optimize_frequencies=self.frequencies_ft,
+                    optimize_phases=self.phases_ft,
+                    seed=int(random_seed) if random_seed is not None else -1,
+                )
 
             
             n = len(self.MultiAn_dominant_cycles_df)

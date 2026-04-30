@@ -43,4 +43,28 @@ Build artifacts such as `.pyd`, `.obj`, `.lib`, CMake output and Visual Studio o
 
 Use `scripts/build_native.ps1` from the repository root to build with the Anaconda `cyenv` interpreter.
 
-`cyPredict/cypredict.py` now prepends these `native/*` folders to `sys.path` before importing the custom modules. `cyPredict/__init__.py` remains a compatibility re-export for legacy imports. This makes locally built or locally copied `.pyd` files discoverable without requiring the notebook working directory.
+The build script now compiles all native modules, including `cyGAopt` and
+`cyGAoptMultiCore`, using setuptools/pybind11. It initializes the local Visual
+Studio 2022 C++ toolchain when `cl.exe` is not already on `PATH`.
+
+By default it writes extensions under each module's `build/lib.*` folder:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_native.ps1
+```
+
+Use `-InPlace` only after closing notebooks or Python processes that may have
+loaded the old `.pyd` files:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_native.ps1 -InPlace
+```
+
+`cyPredict/cypredict.py` now prepends native `build/lib.*` folders first and
+then the `native/*` source folders to `sys.path` before importing the custom
+modules. `cyPredict/__init__.py` remains a compatibility re-export for legacy
+imports. This makes locally built `.pyd` files discoverable without requiring
+the notebook working directory and without replacing a locked in-place module.
+
+`cyGAopt` and `cyGAoptMultiCore` expose `ABI_VERSION = 2`. Python import guards
+reject stale versions before the C++ GA branch can run.

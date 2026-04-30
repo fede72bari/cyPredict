@@ -1,21 +1,12 @@
 # Basics
-import sys
-import traceback
-from pathlib import Path
 
-_NATIVE_MODULE_DIRS = [
-    Path(__file__).resolve().parents[1] / "native" / "goertzel",
-    Path(__file__).resolve().parents[1] / "native" / "cyfitness",
-    Path(__file__).resolve().parents[1] / "native" / "cygaopt",
-    Path(__file__).resolve().parents[1] / "native" / "cygaopt_multicore",
-    Path(__file__).resolve().parents[1] / "native" / "genetic_optimization_legacy",
-]
+from .native_imports import (
+    REQUIRED_CYGAOPT_ABI_VERSION,
+    ensure_native_module_paths,
+    require_native_abi,
+)
 
-for _native_module_dir in _NATIVE_MODULE_DIRS:
-    if _native_module_dir.exists():
-        _native_module_path = str(_native_module_dir)
-        if _native_module_path not in sys.path:
-            sys.path.insert(0, _native_module_path)
+ensure_native_module_paths()
 
 from goertzel import goertzel_general_shortened as goertzel_general_shortened
 from goertzel import goertzel_DFT as goertzel_DFT
@@ -57,6 +48,9 @@ import cyGAopt
 from cyGAopt import run_genetic_algorithm
 import cyGAoptMultiCore
 from cyGAoptMultiCore import run_genetic_algorithm as run_genetic_algorithm_multicore
+
+require_native_abi(cyGAopt, "cyGAopt", REQUIRED_CYGAOPT_ABI_VERSION)
+require_native_abi(cyGAoptMultiCore, "cyGAoptMultiCore", REQUIRED_CYGAOPT_ABI_VERSION)
 
 # Data Management
 import pandas as pd

@@ -1,20 +1,14 @@
 import importlib.util
-import sys
-from pathlib import Path
 
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-NATIVE_PATHS = [
-    REPO_ROOT / "native" / "goertzel",
-    REPO_ROOT / "native" / "cyfitness",
-    REPO_ROOT / "native" / "cygaopt",
-    REPO_ROOT / "native" / "cygaopt_multicore",
-]
+from cyPredict.native_imports import (
+    REQUIRED_CYGAOPT_ABI_VERSION,
+    ensure_native_module_paths,
+    native_module_dirs,
+)
 
 
 def test_native_modules_are_importable_from_repo_native_paths():
-    for path in reversed(NATIVE_PATHS):
-        sys.path.insert(0, str(path))
+    ensure_native_module_paths()
 
     expected = {
         "goertzel": "native\\goertzel",
@@ -32,8 +26,7 @@ def test_native_modules_are_importable_from_repo_native_paths():
 
 
 def test_native_modules_expose_expected_entrypoints():
-    for path in reversed(NATIVE_PATHS):
-        sys.path.insert(0, str(path))
+    ensure_native_module_paths()
 
     import cyGAopt
     import cyGAoptMultiCore
@@ -45,4 +38,17 @@ def test_native_modules_expose_expected_entrypoints():
     assert hasattr(cyfitness, "evaluate_fitness")
     assert hasattr(cyGAopt, "run_genetic_algorithm")
     assert hasattr(cyGAoptMultiCore, "run_genetic_algorithm")
+    assert hasattr(cyGAoptMultiCore, "evaluate_cycle_loss")
+    assert cyGAopt.ABI_VERSION == REQUIRED_CYGAOPT_ABI_VERSION
+    assert cyGAoptMultiCore.ABI_VERSION == REQUIRED_CYGAOPT_ABI_VERSION
 
+
+def test_native_build_directories_are_preferred_when_present():
+    ensure_native_module_paths()
+
+    existing_build_dirs = [path for path in native_module_dirs() if "\\build\\lib." in str(path)]
+    if not existing_build_dirs:
+        return
+
+    first_existing_path = next(path for path in native_module_dirs() if path.exists())
+    assert "\\build\\lib." in str(first_existing_path)

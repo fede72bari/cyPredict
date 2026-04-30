@@ -10,7 +10,7 @@ The code is currently being consolidated. The first rule of the cleanup is to pr
 - Current implementation module: `cyPredict/cypredict.py`
 - Planned cleanup: `sviluppi_programmati/cypredict_cleanup_refactor_plan.md`
 - Native dependency notes: `docs/native_dependencies.md`
-- Native/custom dependencies currently expected on the Python path: `goertzel`, `cyfitness`, `cyGAopt`, `cyGAoptMultiCore`
+- Native/custom dependencies are versioned under `native/` and loaded from local build output when available: `goertzel`, `cyfitness`, `cyGAopt`, `cyGAoptMultiCore`
 - Research notebooks and usage examples currently live outside this repository under `D:\Dropbox\TRADING\STUDIES DEVELOPMENT\CYCLES ANALYSIS`
 
 ## Installation For Local Development
@@ -19,7 +19,13 @@ The code is currently being consolidated. The first rule of the cleanup is to pr
 python -m pip install -e .
 ```
 
-The editable install only packages the Python code in this repository. Native modules must still be available separately until they are imported into the project structure and build scripts are added.
+The editable install only packages the Python code in this repository. Build native modules with the project script:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_native.ps1
+```
+
+The default output is `native/*/build/lib.*`, which cyPredict prefers over older in-place `.pyd` files.
 
 ## Minimal Import
 
