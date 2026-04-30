@@ -13,8 +13,7 @@ class ExtremaMixin:
                                                final_kept_n_dominant_circles=4,
                                                min_period=30,
                                                max_period=80,
-                                               hp_filter_lambda=170000,
-                                               time_tracking=False):
+                                               hp_filter_lambda=170000):
         """Estimate P/L between first projected max and min after current date.
 
         Parameters
@@ -29,9 +28,6 @@ class ExtremaMixin:
             Period range searched by the dominant-cycle analysis.
         hp_filter_lambda : float, default 170000
             HP filter lambda passed to ``analyze_and_plot``.
-        time_tracking : bool, default False
-            Enables legacy timing prints during the nested analysis call.
-
         Returns
         -------
         float
@@ -58,8 +54,7 @@ class ExtremaMixin:
                                                 centered_averages=True,
                                                 other_correlations=True,
                                                 show_charts=False,
-                                                print_report=False,
-                                                time_tracking=time_tracking
+                                                print_report=False
                                                 )
 
         if elaborated_data is None:
@@ -139,12 +134,11 @@ class ExtremaMixin:
                                                         period_related_rebuild_range=period_related_rebuild_range,
                                                         period_related_rebuild_multiplier=period_related_rebuild_multiplier,
                                                         show_charts=False,
-                                                        enabled_multiprocessing=False,
-                                                        time_tracking=self.time_tracking
+                                                        enabled_multiprocessing=False
                                                         )
 
         if composite_signal.isna().any().any():
-            print('composite_signal contiene dei Nan')
+            self.log_warning("Composite signal contains NaN values", function="CDC_vs_detrended_correlation")
 
         return best_fitness_value
 
@@ -174,10 +168,20 @@ class ExtremaMixin:
             rel_pos = last_date_index - periods_number + index
             current_date = data.index[rel_pos]
 
-            print(f'in CDC_vs_detrended_correlation_sum, last_date {last_date}')
-            print(f'in CDC_vs_detrended_correlation_sum, current_date {current_date}')
-            print(f'Day n.//datetime period {index}, calling CDC_vs_detrended_correlation()')
-            print(f'\t periods_number {periods_number}, num_samples {num_samples}, final_kept_n_dominant_circles {final_kept_n_dominant_circles}, hp_filter_lambda {hp_filter_lambda}, period_related_rebuild_range {period_related_rebuild_range},  period_related_rebuild_multiplier {period_related_rebuild_multiplier}, linear_filter_window_size_multiplier {linear_filter_window_size_multiplier}')
+            self.log_debug(
+                "Calling CDC_vs_detrended_correlation in lookback loop",
+                function="CDC_vs_detrended_correlation_sum",
+                last_date=last_date,
+                current_date=current_date,
+                loop_index=index,
+                periods_number=periods_number,
+                num_samples=num_samples,
+                final_kept_n_dominant_circles=final_kept_n_dominant_circles,
+                hp_filter_lambda=hp_filter_lambda,
+                period_related_rebuild_range=period_related_rebuild_range,
+                period_related_rebuild_multiplier=period_related_rebuild_multiplier,
+                linear_filter_window_size_multiplier=linear_filter_window_size_multiplier,
+            )
 
             start = self.MultiAn_dominant_cycles_df['start_rebuilt_signal_index'].min()
             end = self.MultiAn_dominant_cycles_df['end_rebuilt_signal_index'].max()
@@ -185,11 +189,17 @@ class ExtremaMixin:
             rebuilt_segment = rebuilt_signal[start:end]
             reference_segment = self.detrended_data[start:end]
 
-            print(f"Checking rebuilt_signal[{start}:{end}] NaNs: {rebuilt_segment.isna().sum()}")
-            print(f"Checking detrended_data[{start}:{end}] NaNs: {reference_segment.isna().sum()}")
+            self.log_debug(
+                "Fitness segment NaN check",
+                function="CDC_vs_detrended_correlation_sum",
+                start=start,
+                end=end,
+                rebuilt_nan_count=rebuilt_segment.isna().sum(),
+                reference_nan_count=reference_segment.isna().sum(),
+            )
 
             if rebuilt_segment.isna().any() or reference_segment.isna().any():
-                print("Detected NaNs in one of the compared series during fitness evaluation.")
+                self.log_warning("NaN detected during fitness evaluation", function="CDC_vs_detrended_correlation_sum")
 
             temp_fitness = self.CDC_vs_detrended_correlation(
                                                             current_date=current_date,

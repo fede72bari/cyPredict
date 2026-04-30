@@ -47,11 +47,11 @@ class DataMixin:
         ------
         No exception is intentionally re-raised. Existing behavior catches
         exceptions, stores the message in ``self.state["data_state_msg"]`` and
-        prints the error.
+        logs the error.
 
         Example
         -------
-        >>> cp = cyPredict(print_activity_remarks=False)
+        >>> cp = cyPredict(log_level="WARNING")
         >>> cp.download_finance_data("file", r"C:\\data\\bars.csv", "QQQ", None, None, "1d")
         >>> cp.data.index.name
         'Datetime'
@@ -77,16 +77,19 @@ class DataMixin:
                 self.data.set_index("Datetime", inplace=True)
                 self.data = self.data.sort_index()
 
-                # Preserve existing notebook diagnostics.
                 self.data_start_date = self.data.index.min()
                 self.data_end_date = self.data.index.max()
-                print("First df Datetime:", self.data_start_date)
-                print("Last df Datetime:", self.data_end_date)
+                self.log_info(
+                    "Loaded financial data from file",
+                    function="download_finance_data",
+                    first_datetime=self.data_start_date,
+                    last_datetime=self.data_end_date,
+                )
 
             else:
                 self.state["data_state"] = 'error'
                 self.state["data_state_msg"] = 'Not managed data source ' + data_source
-                print('Error: not managed data source ' + data_source)
+                self.log_error("Data source is not managed", function="download_finance_data", data_source=data_source)
 
             if not self.data.empty:
                 self.state["data_state"] = 'initialized'
@@ -99,4 +102,4 @@ class DataMixin:
         except Exception as e:
             self.state["data_state"] = 'error'
             self.state["data_state_msg"] = str(e)
-            print(f"An error occurred in download_finance_data: {e}")
+            self.log_error("Exception while loading financial data", function="download_finance_data", error=e)

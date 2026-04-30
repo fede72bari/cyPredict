@@ -51,8 +51,7 @@ class AnalysisMixin:
                          other_correlations = False,
                          show_charts = False,
                          print_report = True,
-                         debug = False,
-                         time_tracking = False                         
+                         debug = False
                          ):
         """Run a single dominant-cycle analysis on one period range.
 
@@ -129,9 +128,6 @@ class AnalysisMixin:
             Prints tabular/details report.
         debug : bool, default False
             Enables selected debug prints.
-        time_tracking : bool, default False
-            Enables elapsed-time prints for this call.
-
         Returns
         -------
         tuple
@@ -149,7 +145,7 @@ class AnalysisMixin:
         >>> cp = cyPredict(
         ...     data_source="yfinance", ticker="QQQ",
         ...     data_start_date="2022-01-01", data_end_date="2024-01-01",
-        ...     data_timeframe="1d", print_activity_remarks=False)
+        ...     data_timeframe="1d", log_level="WARNING")
         >>> current_date, idx, data, signals, config = cp.analyze_and_plot(
         ...     data_column_name="Close",
         ...     num_samples=256,
@@ -185,11 +181,7 @@ class AnalysisMixin:
           "cut_to_date_before_detrending": cut_to_date_before_detrending
         }
 
-        
-        if(time_tracking):
-            
-            self.set_start_time()
-            self.track_time('\nTime tracking started.')
+        self.log_timing("analyze_and_plot started", function="analyze_and_plot")
 
         
 
@@ -197,7 +189,7 @@ class AnalysisMixin:
 
         if(data is not None):
             if(data.empty): # or self.state["data_state"] != 'initialized'):
-                print("Financial data not available.")
+                self.log_error("Financial data not available", function="analyze_and_plot")
                 return None, None, None, None, None
 
             else:
@@ -206,7 +198,7 @@ class AnalysisMixin:
         else:
 
             if(self.data.empty): # or self.state["data_state"] != 'initialized'):
-                print("Financial data not available.")
+                self.log_error("Financial data not available", function="analyze_and_plot")
                 return None, None, None, None, None
 
             else:
@@ -218,16 +210,16 @@ class AnalysisMixin:
            (start_date == None) &
            (current_date == None)):
 
-            print("At least two of num_samples, start_date and current_date shall be not empty and valid.")
+            self.log_error("At least two of num_samples, start_date and current_date must be provided", function="analyze_and_plot")
 
         if((num_samples != None) &
            (start_date != None) &
            (current_date != None)):
 
-            print("Ambigouos number of not null paramenters: one of num_samples, start_date and current_date shall be empty.")
+            self.log_error("Ambiguous window parameters: one of num_samples, start_date and current_date must be empty", function="analyze_and_plot")
 
         if((final_kept_n_dominant_circles == None) & ((min_period == None) | (max_period == None))):
-            print("final_kept_n_dominant_circles or both min_period and max_period shalle be not null.")
+            self.log_error("Missing dominant-cycle count or period bounds", function="analyze_and_plot")
             return None, None, None, None, None
 
 
@@ -300,14 +292,19 @@ class AnalysisMixin:
                                      f"is required, but only {available_n_samples} samples are available.")
 
                 if data.empty:
-                    print(f"No data for current datetime equal to {current_date}. Possible not existing date (weekend?), wrong date format or mismatch with the timezone.")
+                    self.log_warning(
+                        "No data for current datetime",
+                        function="analyze_and_plot",
+                        current_date=current_date,
+                        reason="possible non-trading date, wrong date format, or timezone mismatch",
+                    )
                     
                     sys.exit("No data for current datetime")
 
                     return None, None, None, None, None
 
             else:
-                print(f"No data for current datetime equal to {current_date}.")
+                self.log_warning("No data for current datetime", function="analyze_and_plot", current_date=current_date)
                 sys.exit("No data for current datetime")
                 return None, None, None, None, None
 
@@ -346,37 +343,45 @@ class AnalysisMixin:
         if(cut_to_date_before_detrending):
             
             detrending_data = original_data[data_column_name].iloc[:index_of_max_time_for_cd+1]
-            print(f'Detrend filter applied to data cut to current datetime: {detrending_data.tail(1).index}')
-            print(f'Last available data datetime: {original_data[data_column_name].tail(1).index}')
+            self.log_info(
+                "Detrend filter applied to data cut to current datetime",
+                function="analyze_and_plot",
+                detrending_tail_index=detrending_data.tail(1).index,
+                last_available_index=original_data[data_column_name].tail(1).index,
+            )
         else:
-            print('Detrend filter applied to full original data time series not cut to current datetime.')
+            self.log_info("Detrend filter applied to full original data series", function="analyze_and_plot")
             detrending_data = original_data[data_column_name]
 
         
         # Select the detrending branch without altering the transform path.
         if(detrend_type == 'linear'):
-            print(f'linear detrend, detrend window = {detrend_window}')
-            print(f'len orginal_data[data_column_name] = {len(original_data[data_column_name])}')
+            self.log_debug(
+                "Linear detrend selected",
+                function="analyze_and_plot",
+                detrend_window=detrend_window,
+                data_length=len(original_data[data_column_name]),
+            )
 
             detrended_data = self.linear_detrend(detrending_data[data_column_name], window_size = detrend_window)
     
 
         if(detrend_type == 'quadratic'):
-            print('quadratic detrend')           
+            self.log_debug("Quadratic detrend selected", function="analyze_and_plot")
             detrended_data = detrend(detrending_data, order=2)
 
         if(detrend_type == 'hp_filter'):
-            print('hp_filter')
+            self.log_debug("HP filter detrend selected", function="analyze_and_plot", hp_filter_lambda=hp_filter_lambda)
             detrended_data, _ = self.hp_filter(detrending_data, hp_filter_lambda)
 
 
         if(detrend_type == 'jh_filter'):
-            print('jh_filter')
+            self.log_debug("JH filter detrend selected", function="analyze_and_plot", jp_filter_p=jp_filter_p, jp_filter_h=jp_filter_h)
             detrended_data = self.jh_filter(detrending_data, jp_filter_p, jp_filter_h)
             
             
         if(detrend_type == 'lowess'):
-            print('lowess')
+            self.log_debug("LOWESS detrend selected", function="analyze_and_plot", lowess_k=lowess_k)
             _, detrended_data = self.detrend_lowess(detrending_data, max_period, k=4)
             
         
@@ -386,10 +391,7 @@ class AnalysisMixin:
 
 
         
-        if(time_tracking):
-            self.track_time('\tPartial time Data Preparation')
-
-
+        self.log_timing('\tPartial time Data Preparation', function="analyze_and_plot")
         # ------------------------------------------------------
         # Run Goertzel transform over candidate frequencies
         # ------------------------------------------------------
@@ -457,10 +459,7 @@ class AnalysisMixin:
 
 
 
-        if(time_tracking):
-            self.track_time('\tPartial time Goertzel Transform')
-            
-            
+        self.log_timing('\tPartial time Goertzel Transform', function="analyze_and_plot")
         # ------------------------------------------------------
         # Restrict harmonic candidates to the requested period range
         # ------------------------------------------------------
@@ -486,17 +485,14 @@ class AnalysisMixin:
         peak_phases = phases[cut_peaks_indexes] #np.angle(transform[cut_peaks_indexes])
 
         if(len(cut_peaks_indexes) == 0):
-            print(f"\t\t\t\tlen(cut_peaks_indexes) == 0")
+            self.log_warning("No harmonic peaks remained after period filtering", function="analyze_and_plot")
             return None, None, None, None, None
         
         
 
 
                             
-        if(time_tracking):
-            self.track_time('\tPartial time Partial time Limit N of harmonics')
-        
-
+        self.log_timing('\tPartial time Partial time Limit N of harmonics', function="analyze_and_plot")
         # ------------------------------------------------------
         # Apply optional Bartels-style peak filtering
         # -----------------------------------------------------
@@ -523,10 +519,7 @@ class AnalysisMixin:
 
 
 
-        if(time_tracking):
-            self.track_time('\tPartial time Bartel Score')                           
-
-
+        self.log_timing('\tPartial time Bartel Score', function="analyze_and_plot")
         # ------------------------------------------------------
         # Compute optional correlation features for peak scoring
         # -----------------------------------------------------
@@ -565,9 +558,13 @@ class AnalysisMixin:
                 # Compare the harmonic with the Savitzky-Golay delta proxy.
 
                 if(debug == True):
-                    print("Other correlations, period: " + str(period))
-                    print("Other correlations, int(period*2): " + str(int(period*2)))
-                    print("len(data_df[data_column_name]): " + str(len(data_df[data_column_name])))
+                    self.log_debug(
+                        "Other correlations diagnostics",
+                        function="analyze_and_plot",
+                        period=period,
+                        double_period=int(period * 2),
+                        data_length=len(data_df[data_column_name]),
+                    )
 
                 averages['savgol_filter_long'] = savgol_filter(data_df[data_column_name], int(period*2), 2)
                 averages['savgol_filter_short'] = savgol_filter(data_df[data_column_name], int(period), 2)
@@ -581,9 +578,7 @@ class AnalysisMixin:
 
                             
                             
-            if(time_tracking):
-                self.track_time('\tPartial time Other Correlations')      
-
+            self.log_timing('\tPartial time Other Correlations', function="analyze_and_plot")
             # Measure peak-count coherence against the Savitzky-Golay delta proxy.
             if(int(period/2) < 2):
                 peaks_tollerance = 1
@@ -601,10 +596,7 @@ class AnalysisMixin:
             goertzel_df_peaks.loc[goertzel_df_peaks['peaks_indexes'] == index, 'scaled_signal_vs_scaled_savgol_filter_delta_peaks_n_ratio'] = abs(signal_peaks_n - scaled_savgol_filter_delta_peaks_n) / period # peaks_n_ratio
             
                             
-            if(time_tracking):
-                self.track_time('\tPartial time Partial time Peaks cardinality Error calculation')   
-
-
+            self.log_timing('\tPartial time Partial time Peaks cardinality Error calculation', function="analyze_and_plot")
             # Compare the harmonic with the derivative of the delta proxy.
             averages['scaled_savgol_filter_delta_derivate'] = averages.diff()['scaled_savgol_filter_delta'] #averages['scaled_average_delta'].values - averages['scaled_average_delta'].shift(1).values #averages['scaled_average_delta'].diff()
             averages['scaled_savgol_filter_delta_derivate'] = averages['scaled_savgol_filter_delta_derivate'].fillna(0)
@@ -614,10 +606,7 @@ class AnalysisMixin:
             goertzel_df_peaks.loc[goertzel_df_peaks['peaks_indexes'] == index, 'scaled_savgol_filter_delta_derivate_correlations'] = simpson(signal['scaled_signal_derivate'] * np.roll(averages['scaled_savgol_filter_delta_derivate'], tau), dx=1) / signal_peaks_n
                             
                             
-            if(time_tracking):
-                self.track_time('\tPartial time Partial time Correlation between scaled harmonic and ascled delta')   
-
-
+            self.log_timing('\tPartial time Partial time Correlation between scaled harmonic and ascled delta', function="analyze_and_plot")
             # Measure nearest-peak phase error between harmonic and proxy.
 
             # Store paired peak-index differences before RMSE normalization.
@@ -670,9 +659,7 @@ class AnalysisMixin:
 
 
                             
-        if(time_tracking):
-            self.track_time('\tPartial time error between current scaled harmonic and scaled_savgol_filter_delta_correlation')   
-
+        self.log_timing('\tPartial time error between current scaled harmonic and scaled_savgol_filter_delta_correlation', function="analyze_and_plot")
         # ------------------------------------------------------
         # Build the global score used to rank candidate cycles
         # ------------------------------------------------------
@@ -692,16 +679,19 @@ class AnalysisMixin:
                               'scaled_signal_vs_scaled_savgol_filter_delta_peaks_n_ratio'] # Higer score for lower values
 
         if 'scaled_savgol_filter_delta_correlation' not in goertzel_df_peaks:
-            print(goertzel_df_peaks)
+            self.log_warning(
+                "Goertzel peaks dataframe missing scaled_savgol_filter_delta_correlation",
+                function="analyze_and_plot",
+                columns=list(goertzel_df_peaks.columns),
+                rows=len(goertzel_df_peaks),
+            )
 
         global_score = self.get_gloabl_score(goertzel_df_peaks, ascending_columns, descending_columns)
 
         goertzel_df_peaks['global_score'] = global_score
 
         
-        if(time_tracking):
-            self.track_time('\tPartial time Cicle Global Scoring calculation')   
-
+        self.log_timing('\tPartial time Cicle Global Scoring calculation', function="analyze_and_plot")
         # ------------------------------------------------------
         # Select the dominant peaks used for signal reconstruction
         # -----------------------------------------------------
@@ -757,9 +747,7 @@ class AnalysisMixin:
         kept_dominant_peaks['peak_phases'] = kept_dominant_peak_phases
 
 
-        if(time_tracking):
-            self.track_time('\tPartial time Dominants Peaks Sorting')   
-
+        self.log_timing('\tPartial time Dominants Peaks Sorting', function="analyze_and_plot")
         # ------------------------------------------------------
         # Derive the dominant period used by indicator proxy columns
         # ------------------------------------------------------
@@ -790,9 +778,7 @@ class AnalysisMixin:
 
         
             
-        if(time_tracking):
-            self.track_time('\tPartial time Dominant Circle Calibrated Standard Indicator')   
-            
+        self.log_timing('\tPartial time Dominant Circle Calibrated Standard Indicator', function="analyze_and_plot")
         # ------------------------------------------------------
         # Build centered moving-average delta proxy
         # -----------------------------------------------------
@@ -810,11 +796,7 @@ class AnalysisMixin:
         original_data['centered_averages_delta'] = centered_averages_delta
 
             
-        if(time_tracking):
-            self.track_time('\tPartial time Averages Delta')   
-            
-
-
+        self.log_timing('\tPartial time Averages Delta', function="analyze_and_plot")
         # ------------------------------------------------------
         # Build Savitzky-Golay delta proxy
         # -----------------------------------------------------
@@ -832,10 +814,7 @@ class AnalysisMixin:
         original_data['scaled_savgol_filter_delta'] = scaled_savgol_filter_delta
 
             
-        if(time_tracking):
-            self.track_time('\tPartial time scaled_savgol_filter_delta') 
-
-            
+        self.log_timing('\tPartial time scaled_savgol_filter_delta', function="analyze_and_plot")
         # ----------------------------------------------------------
         # Rebuild individual dominant cycles and their composite signal
         # ----------------------------------------------------------
@@ -919,11 +898,7 @@ class AnalysisMixin:
 
 
             
-        if(time_tracking):
-            self.track_time('\tPartial time Dominant Cicle Signals') 
-
-
-
+        self.log_timing('\tPartial time Dominant Cicle Signals', function="analyze_and_plot")
         # ------------------------------------------------------
         # Attach detrended and rebuilt columns back to original_data
         # ------------------------------------------------------
@@ -990,14 +965,11 @@ class AnalysisMixin:
 
 
         else:
-            print("La data della prima riga di new_data non è presente in original_data.")
+            self.log_warning("First new_data row is not present in original_data", function="analyze_and_plot", first_date=first_date)
 
 
             
-        if(time_tracking):
-            self.track_time('\tPartial time Detrended Data') 
-
-
+        self.log_timing('\tPartial time Detrended Data', function="analyze_and_plot")
         # ------------------------------------------------------
         # Refresh the Savitzky-Golay delta column after alignment
         # -----------------------------------------------------
@@ -1016,11 +988,7 @@ class AnalysisMixin:
         df = pd.DataFrame(signals_results)
         
             
-        if(time_tracking):
-            self.track_time('\tPartial time scaled_savgol_filter_delta') 
-
-
-
+        self.log_timing('\tPartial time scaled_savgol_filter_delta', function="analyze_and_plot")
         # ------------------------------------------------------
         # Optional notebook report
         # ------------------------------------------------------
@@ -1030,10 +998,8 @@ class AnalysisMixin:
 
 
 
-            print("\n")
             display(goertzel_df_peaks)
 
-            print("\n")
             display(kept_dominant_peaks)
 
 
@@ -1083,9 +1049,13 @@ class AnalysisMixin:
             normalized_detrended = scaler.fit_transform(original_data['detrended'].values.reshape(-1, 1)).flatten()
             normalized_composite_circles = scaler.fit_transform(original_data['composite_dominant_circles_signal'].values.reshape(-1, 1)).flatten()
 
-            print(f"original data last element datetime: {original_data[data_column_name].last_valid_index()}") 
-            print(f"detrended data last element datetime: {original_data['detrended'].last_valid_index()}") 
-            print(f"CDC data last element datetime: {original_data['composite_dominant_circles_signal'].last_valid_index()}") 
+            self.log_debug(
+                "Chart data last valid indexes",
+                function="analyze_and_plot",
+                original_last_valid_index=original_data[data_column_name].last_valid_index(),
+                detrended_last_valid_index=original_data['detrended'].last_valid_index(),
+                cdc_last_valid_index=original_data['composite_dominant_circles_signal'].last_valid_index(),
+            )
 
             fig.add_trace(go.Scatter(x=original_data.index, y=normalized_detrended, mode="lines", name="Detrended Close"), row=2, col=1)
             fig.add_trace(go.Scatter(x=original_data.index, y=normalized_composite_circles, mode="lines", name="Dominant Circle Signal"), row=2, col=1)

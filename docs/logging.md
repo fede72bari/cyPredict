@@ -49,10 +49,14 @@ logs/cypredict_{ticker}_{timeframe}_{YYYYMMDD_HHMMSS}_{run_id}.log
 logs/cypredict_{ticker}_{timeframe}_{YYYYMMDD_HHMMSS}_{run_id}.jsonl
 ```
 
-Adoption order:
+Runtime controls:
 
-1. wire the logger into initialization while keeping existing `print_activity_remarks` behavior;
-2. replace timing prints;
-3. replace processing/debug prints;
-4. keep notebook console output controlled by log level.
+- `log_level="WARNING"` keeps normal notebook runs quiet except warnings and errors.
+- `log_level="INFO"` enables processing and timing events.
+- `log_level="DEBUG"` enables diagnostic context and intermediate display blocks.
+- `log_to_console=True` prints structured lines to console.
+- `log_to_file=True` writes both `.log` and `.jsonl` files.
 
+Legacy flags `time_tracking` and `print_activity_remarks` were removed from
+the public API. Timing is now category `timing`; verbose remarks are now
+controlled by `log_level`.

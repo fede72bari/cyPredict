@@ -385,7 +385,7 @@ Sostituire `print(...)` diffusi con un logging strutturato, filtrabile e salvabi
    - `log_to_file`;
    - `log_dir`;
    - `run_id`;
-   - compatibilita' con `time_tracking` e `print_activity_remarks`.
+   - rimozione dei flag legacy `time_tracking` e `print_activity_remarks` dopo migrazione al logger strutturato.
 8. Sostituire progressivamente `print`:
    - prima messaggi di errore/timing;
    - poi messaggi di processo;

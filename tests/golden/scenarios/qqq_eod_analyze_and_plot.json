@@ -6,9 +6,9 @@
     "data_start_date": "2022-01-01",
     "data_end_date": "2024-01-01",
     "data_timeframe": "1d",
-    "time_tracking": false,
     "output_clearing": false,
-    "print_activity_remarks": false
+    "log_level": "WARNING",
+    "log_to_console": false
   },
   "method": "analyze_and_plot",
   "method_kwargs": {
@@ -37,7 +37,6 @@
     "other_correlations": true,
     "show_charts": false,
     "print_report": false,
-    "debug": false,
-    "time_tracking": false
+    "debug": false
   }
 }

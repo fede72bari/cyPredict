@@ -34,7 +34,7 @@ class DetrendingMixin:
         output = data.to_numpy(dtype=np.float64).copy()
 
         if nobs <= 5:
-            print('nobs <= 5')
+            self.log_warning("HP filter input too short", function="hp_filter", nobs=nobs)
             return None, 0  # Not enough data
 
         a = np.zeros(nobs)
@@ -73,8 +73,18 @@ class DetrendingMixin:
         for i in range(nobs):
             Z = a[i] - H4 * H1 - HH5 * HH2
             if Z == 0:
-                print(f"[DEBUG] Z==0 at i={i}, skipping.")
-                print(f"[DEBUG] i={i}, Z={Z}, a={a[i]}, b={b[i]}, c={c[i]}, H1={H1}, H2={H2}, H3={H3}")
+                self.log_debug(
+                    "HP filter division by zero",
+                    function="hp_filter",
+                    index=i,
+                    Z=Z,
+                    a=a[i],
+                    b=b[i],
+                    c=c[i],
+                    H1=H1,
+                    H2=H2,
+                    H3=H3,
+                )
 
                 return None, 3  # Division by zero
             HB = b[i]
@@ -128,7 +138,7 @@ class DetrendingMixin:
 
         n = len(y)
 
-        print("p: " + str(p) + ", h: " + str(h))
+        self.log_debug("JH filter parameters", function="jh_filter", p=p, h=h)
 
         X = np.ones((n - h, p + 1))
         y_est = np.zeros(n - h)

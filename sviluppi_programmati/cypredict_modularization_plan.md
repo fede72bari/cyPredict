@@ -5,7 +5,7 @@ Data: 2026-04-29
 ## Stato Attuale
 
 - Fase 1 completata: `cyPredict/__init__.py` e' un compatibility layer e la classe legacy vive in `cyPredict/cypredict.py`.
-- Fase 2 completata in questo ciclo di lavoro: `core/state.py` contiene `StateMixin`, enum legacy, `__init__`, `track_time` e `set_start_time`.
+- Fase 2 completata in questo ciclo di lavoro: `core/state.py` contiene `StateMixin`, enum legacy, `__init__` e i wrapper del logger strutturato.
 - Fase 3.1 completata in questo ciclo di lavoro: `core/data.py` contiene `DataMixin` e `download_finance_data`.
 - Fase 3.2 completata in questo ciclo di lavoro: `core/dates.py` contiene `DatesMixin`, `find_next_valid_datetime` e `datetime_dateset_extend`.
 - Fase 4 completata in questo ciclo di lavoro: `core/detrending.py` contiene `DetrendingMixin`, `hp_filter`, `jh_filter`, `linear_detrend` e `detrend_lowess`.
@@ -23,6 +23,7 @@ Data: 2026-04-29
 - Fix verificati su `core/multiperiod.py`: conversione intera dell'indice `start_rebuilt_signal_index` nel ramo `mono_frequency`, gestione vettori full/active per il GA C++ in tutte le combinazioni `frequencies_ft`/`phases_ft`, fallback per la firma legacy della DLL single-core e fitness scalare per TPE/ATPE.
 - Nota tecnica emersa dai test: la DLL `cyGAopt` single-core installata espone una firma a 9 argomenti, mentre il sorgente C++ versionato in `native/cygaopt/cyGAopt.cpp` dichiara una firma a 11 argomenti. Serve ricompilazione o allineamento esplicito prima di considerare C++ single-core equivalente al sorgente.
 - Correzione funzionale approvata e applicata: `cicles_composite_signals` usa `best_frequencies` e `best_phases` quando presenti e valorizzati; in assenza di quei valori resta il fallback storico su `peak_frequencies` e `peak_phases`. Da questo punto il fine tuning frequenza/fase influenza anche la ricostruzione finale del segnale.
+- Logging centralizzato completato in questo ciclo di lavoro: rimossi i flag legacy `time_tracking` e `print_activity_remarks`, cablato `CyPredictLogger` nello stato della classe e convertiti i `print(...)` del core in eventi strutturati con livelli e categorie.
 - La classe pubblica resta `cyPredict.cyPredict` e ora eredita da `AnalysisMixin`, `StateMixin`, `DataMixin`, `DatesMixin`, `DetrendingMixin`, `SpectralMixin`, `DiagnosticsMixin`, `ExtremaMixin`, `IndicatorsMixin`, `MinMaxMixin`, `MultiperiodMixin`, `OptimizationMixin`, `PersistenceMixin`, `ReconstructionMixin` e `ScoringMixin`.
 - Gli import legacy sono stati mantenuti prima dell'import dei mixin: questa regola e' importante per evitare cambiamenti indiretti nell'ordine di inizializzazione delle librerie scientifiche/native. Unica eccezione verificata: l'import `yfinance` e' stato rimosso dal monolite perche' ora e' locale a `core/data.py` e il golden QQQ resta stabile.
 - Gli import calendario storici (`pytz`, `timezone`, `USFederalHolidayCalendar`, `BDay`, `timedelta`, `date`) restano temporaneamente nel monolite anche se non sono referenziati direttamente: la loro rimozione ha prodotto drift golden, quindi vanno trattati solo in un commit dedicato con analisi dell'ordine di import.

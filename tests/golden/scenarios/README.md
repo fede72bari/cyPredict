@@ -11,8 +11,8 @@ Minimal shape:
     "data_source": "file",
     "data_filename": "path/to/frozen_ohlcv.csv",
     "data_timeframe": "5m",
-    "print_activity_remarks": false,
-    "time_tracking": false
+    "log_level": "WARNING",
+    "log_to_console": false
   },
   "method": "analyze_and_plot",
   "method_kwargs": {
@@ -24,8 +24,7 @@ Minimal shape:
     "max_period": 256,
     "detrend_type": "hp_filter",
     "show_charts": false,
-    "print_report": false,
-    "time_tracking": false
+    "print_report": false
   }
 }
 ```

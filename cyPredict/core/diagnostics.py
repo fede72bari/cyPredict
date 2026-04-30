@@ -5,7 +5,7 @@ class DiagnosticsMixin:
     """Expose lightweight diagnostics retained for notebook workflows."""
 
     def debug_check_complex_col(self, colname):
-        """Print rows with complex values in ``self.MultiAn_dominant_cycles_df``.
+        """Log rows with complex values in ``self.MultiAn_dominant_cycles_df``.
 
         Parameters
         ----------
@@ -22,7 +22,13 @@ class DiagnosticsMixin:
             indices = df.index[complex_mask]
             for i in indices:
                 val = df.at[i, colname]
-                print(f"  -> index={i}, {colname}={val}")
+                self.log_debug(
+                    "Complex value detected in dominant-cycle dataframe",
+                    function="debug_check_complex_col",
+                    index=i,
+                    column=colname,
+                    value=val,
+                )
 
     def debug_check_complex_values(self):
         """Inspect amplitude, frequency and phase columns for complex values."""

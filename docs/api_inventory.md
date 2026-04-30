@@ -20,8 +20,6 @@ This inventory is intentionally descriptive. It does not authorize removals by i
 | Line | Function | Docstring | Return count | Initial classification |
 | ---: | --- | :---: | ---: | --- |
 | 125 | `__init__` | no | 0 | public |
-| 203 | `track_time` | no | 0 | internal logging/timing |
-| 210 | `set_start_time` | no | 0 | internal logging/timing |
 | 215 | `download_finance_data` | no | 0 | public/helper |
 | 275 | `hp_filter` | no | 3 | calculation |
 | 368 | `get_bartels_score` | no | 1 | calculation |
@@ -71,4 +69,4 @@ This inventory is intentionally descriptive. It does not authorize removals by i
 - Several return tuples contain placeholders or `None` values that should be documented before any contract change.
 - Long public signatures should be stabilized through config objects rather than repeated positional/keyword expansion.
 - Notebook compatibility matters because historical notebooks still call older parameters such as `CDC_bb_analysis`, `CDC_RSI_analysis`, `CDC_MACD_analysis`, and sometimes `time_zone`.
-- Structured logging utilities now exist in `cyPredict.logging_utils`, but they are not wired into calculation paths yet.
+- Structured logging utilities are wired into the main analysis paths. Legacy `time_tracking` and `print_activity_remarks` flags are removed.

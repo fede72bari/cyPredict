@@ -106,7 +106,7 @@ class DatesMixin:
                 timeframe = 'intraday'
 
             if timeframe in ['1d', '1h', '1wk', '1mo']:
-                print("DAILY TIMEFRAME DETECTED")
+                self.log_debug("Daily-like timeframe detected", function="datetime_dateset_extend", timeframe=timeframe)
 
                 historical_weekdays = set(df.index.weekday)
 
@@ -125,7 +125,7 @@ class DatesMixin:
                     new_indexes = [pd.Timestamp(d).tz_localize(timezone) for d in new_indexes]
 
             else:
-                print("INTRADAY TIMEFRAME DETECTED")
+                self.log_debug("Intraday timeframe detected", function="datetime_dateset_extend", timeframe=timeframe)
 
                 today = df.index.max().date()
 

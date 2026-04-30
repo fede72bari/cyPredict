@@ -165,9 +165,9 @@ def make_instance(asset: AssetConfig):
         data_start_date=asset.data_start_date,
         data_end_date=asset.data_end_date,
         data_timeframe="1d",
-        time_tracking=False,
         output_clearing=False,
-        print_activity_remarks=False,
+        log_level="WARNING",
+        log_to_console=False,
     )
 
 
@@ -200,7 +200,6 @@ def run_monorange(asset_name: str, detrend_type: str) -> dict[str, Any]:
         show_charts=False,
         print_report=False,
         debug=False,
-        time_tracking=False,
         **kwargs,
     )
 
@@ -257,8 +256,6 @@ def run_multirange(
         period_related_rebuild_multiplier=2.5,
         discretization_steps=20,
         enabled_multiprocessing=enabled_multiprocessing,
-        time_tracking=False,
-        print_activity_remarks=False,
     )
 
     (

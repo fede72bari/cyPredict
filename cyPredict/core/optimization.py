@@ -4,7 +4,6 @@ from datetime import datetime
 from decimal import Decimal
 import multiprocessing
 import random
-import sys
 import traceback
 
 from deap import algorithms, base, creator, tools
@@ -287,7 +286,13 @@ class OptimizationMixin:
         # Correggi x0 se tocca (o supera) ub
         for i in range(len(x0)):
             if x0[i] >= ub[i]:
-                print(f"Aggiusto x0[{i}]={x0[i]} che tocca/supera ub={ub[i]}")
+                self.log_debug(
+                    "Adjusted NLopt x0 touching upper bound",
+                    function="MultiAn_optimize_NLOPT",
+                    index=i,
+                    original_value=x0[i],
+                    upper_bound=ub[i],
+                )
                 x0[i] = ub[i] - EPSILON
 
         def loss(x, grad):
@@ -301,10 +306,10 @@ class OptimizationMixin:
         # ⚠️ Ora scegli l’algoritmo in base alla dimensionalità
         if len(x0) <= 8:
             algo = nlopt.LN_COBYLA
-            print(f"Using NLopt algorithm: COBYLA")
+            self.log_info("Using NLopt algorithm", function="MultiAn_optimize_NLOPT", algorithm="COBYLA")
         else:
             algo = nlopt.GN_ISRES
-            print(f"Using NLopt algorithm: ISRES (fallback for high dimension)")
+            self.log_info("Using NLopt algorithm", function="MultiAn_optimize_NLOPT", algorithm="ISRES", reason="fallback for high dimension")
         
         # ⚠️ Ora istanzia opt
         opt = nlopt.opt(algo, len(x0))
@@ -361,7 +366,12 @@ class OptimizationMixin:
                 
                 if(period_related_rebuild_index < row['start_rebuilt_signal_index']):
                     period_related_rebuild_index = row['start_rebuilt_signal_index']
-                    print('period_related_rebuild_index < start_rebuilt_signal_index')
+                    self.log_debug(
+                        "Period-related rebuild index before cycle start",
+                        function="MultiAn_evaluateFitness_py",
+                        adjusted_index=period_related_rebuild_index,
+                        start_rebuilt_signal_index=row['start_rebuilt_signal_index'],
+                    )
                     
                 temp_circle_signal_2 = [0.0] * len(temp_circle_signal)
 
@@ -410,7 +420,7 @@ class OptimizationMixin:
         data = self.data
         last_date = self.genOpt_last_date
         
-        print(f'self.genOpt_last_date {self.genOpt_last_date}')
+        self.log_debug("Evaluating MSE fitness", function="genOpt_evaluateMSEFitness", last_date=self.genOpt_last_date)
         periods_number = self.genOpt_periods_number
         period_related_rebuild_multiplier = 1
         linear_filter_window_size_multiplier = 1
@@ -422,7 +432,7 @@ class OptimizationMixin:
                 num_samples, final_kept_n_dominant_circles, min_period, max_period, hp_filter_lambda, period_related_rebuild_multiplier  = individual
                 
                 if((period_related_rebuild_multiplier < 2) or (period_related_rebuild_multiplier > 6)):
-                    print('Constraint violation, (period_related_rebuild_multiplier < 1) or (period_related_rebuild_multiplier > 5)')
+                    self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="period_related_rebuild_multiplier out of bounds")
                     return (1e9,)  # Vincolo violato
                 
             else:                                
@@ -430,7 +440,7 @@ class OptimizationMixin:
             
             
             if hp_filter_lambda < 1 or hp_filter_lambda > 2e9:
-                print('Constraint violation, hp_filter_lambda < 1 or hp_filter_lambda > 2e9')
+                self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="hp_filter_lambda out of bounds")
                 return (1e9,)  # Vincolo violato
             
             
@@ -441,37 +451,37 @@ class OptimizationMixin:
                 num_samples, final_kept_n_dominant_circles, min_period, max_period, linear_filter_window_size_multiplier, period_related_rebuild_multiplier = individual
                 
                 if((period_related_rebuild_multiplier < 1) or (period_related_rebuild_multiplier > 5)):
-                    print('Constraint violation, (period_related_rebuild_multiplier < 1) or (period_related_rebuild_multiplier > 5)')
+                    self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="period_related_rebuild_multiplier out of bounds")
                     return (1e9,)  # Vincolo violato
                 
             else:                
                 num_samples, final_kept_n_dominant_circles, min_period, max_period, linear_filter_window_size_multiplier  = individual                
                 
             if((linear_filter_window_size_multiplier < 0.5) or (linear_filter_window_size_multiplier > 2)):
-                    print('Constraint violation, (linear_filter_window_size_multiplier < 0.5) or (linear_filter_window_size_multiplier > 2)')
+                    self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="linear_filter_window_size_multiplier out of bounds")
                     return (1e9,)  # Vincolo violato
 
         # Constraints definition
         if num_samples < max_period*2:
-            print('Constraint violation, num_samples < max_period*2')
+            self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="num_samples < max_period*2")
             return (1e9,)  # Vincolo violato
         if num_samples > 5000 or num_samples < 30:
-            print('Constraint violation, num_samples > 5000 or num_samples < 50')
+            self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="num_samples outside allowed range")
             return (1e9,)  # Vincolo violatoo
         if final_kept_n_dominant_circles > 15 or final_kept_n_dominant_circles < 1:
-            print('Constraint violation, final_kept_n_dominant_circles > 15 or final_kept_n_dominant_circles < 1')
+            self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="final_kept_n_dominant_circles outside allowed range")
             return (1e9,)  # Vincolo violato
         if min_period < 1 or min_period > 1024:
-            print('Constraint violation, min_period < 1 or min_period > 1024')
+            self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="min_period outside allowed range")
             return (1e9,)  # Vincolo violato
         if max_period < 7 or max_period > 1024:
-            print('Constraint violation, max_period < 10 or max_period > 1024')
+            self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="max_period outside allowed range")
             return (1e9,)  # Vincolo violato
         if min_period + 2 > max_period:
-            print('Constraint violation, min_period + 2 > max_period')
+            self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="min_period + 2 > max_period")
             return (1e9,)  # Vincolo violato
         if hp_filter_lambda < 1 or hp_filter_lambda > 2e9:
-            print('Constraint violation, hp_filter_lambda < 1 or hp_filter_lambda > 2e9')
+            self.log_debug("Constraint violation", function="genOpt_evaluateMSEFitness", constraint="hp_filter_lambda out of bounds")
             return (1e9,)  # Vincolo violato
 
 
@@ -501,27 +511,21 @@ class OptimizationMixin:
 
 
         except Exception as e:
-
-            print(f"An exception occurred in genOpt_evaluateMSEFitness() calling CDC_vs_detrended_correlation_sum(): {e}")
-            print("Traceback:")
-            traceback.print_exc()
-            print(f'last_date: {last_date}')
-            print(f'periods_number: {periods_number}')
-            print(f'final_kept_n_dominant_circles: {final_kept_n_dominant_circles}')
-            print(f'min_period: {min_period}')
-            print(f'max_period: {max_period}')
-            print(f'best_fit_start_back_period: {self.best_fit_start_back_period}')
-            
-            if(self.detrend_type == 'hp_filter'):
-                print(f'hp_filter_lambda: {hp_filter_lambda}')
-            
-            if(self.detrend_type == 'linear'):
-                print(f'linear_filter_window_size_multiplier: {linear_filter_window_size_multiplier}')
-            
-            
-            if(self.period_related_rebuild_range == True):
-                print(f'period_related_rebuild_multiplier: {period_related_rebuild_multiplier}')
-
+            self.log_error(
+                "Exception while evaluating MSE fitness",
+                function="genOpt_evaluateMSEFitness",
+                error=e,
+                traceback=traceback.format_exc(),
+                last_date=last_date,
+                periods_number=periods_number,
+                final_kept_n_dominant_circles=final_kept_n_dominant_circles,
+                min_period=min_period,
+                max_period=max_period,
+                best_fit_start_back_period=self.best_fit_start_back_period,
+                hp_filter_lambda=hp_filter_lambda,
+                linear_filter_window_size_multiplier=linear_filter_window_size_multiplier,
+                period_related_rebuild_multiplier=period_related_rebuild_multiplier,
+            )
 
             return (1e9, )
 
@@ -546,22 +550,22 @@ class OptimizationMixin:
         if num_samples < max_period*2:
             return (-1e9, -1e9, -1e9, -1e9, -1e9, -1e9, 1e9, -1e9, -1e9)  # Vincolo violato
         if num_samples > 1200 or num_samples < 30:
-            print('Constraint violation, num_samples > 1200 or num_samples < 50')
+            self.log_debug("Constraint violation", function="genOpt_evaluateFitness", constraint="num_samples outside allowed range")
             return (-1e9, -1e9, -1e9, -1e9, -1e9, -1e9, 1e9, -1e9, -1e9)   # Vincolo violato
         if final_kept_n_dominant_circles > 15 or final_kept_n_dominant_circles < 1:
-            print('Constraint violation, final_kept_n_dominant_circles > 15 or final_kept_n_dominant_circles < 1')
+            self.log_debug("Constraint violation", function="genOpt_evaluateFitness", constraint="final_kept_n_dominant_circles outside allowed range")
             return (-1e9, -1e9, -1e9, -1e9, -1e9, -1e9, 1e9, -1e9, -1e9)   # Vincolo violato
         if min_period < 1 or min_period > 200:
-            print('Constraint violation, min_period < 1 or min_period > 200')
+            self.log_debug("Constraint violation", function="genOpt_evaluateFitness", constraint="min_period outside allowed range")
             return (-1e9, -1e9, -1e9, -1e9, -1e9, -1e9, 1e9, -1e9, -1e9)   # Vincolo violato
         if max_period < 7 or max_period > 400:
-            print('Constraint violation, max_period < 10 or max_period > 400')
+            self.log_debug("Constraint violation", function="genOpt_evaluateFitness", constraint="max_period outside allowed range")
             return (-1e9, -1e9, -1e9, -1e9, -1e9, -1e9, 1e9, -1e9, -1e9)   # Vincolo violato
         if min_period + 2 > max_period:
-            print('Constraint violation, min_period + 2 > max_period')
+            self.log_debug("Constraint violation", function="genOpt_evaluateFitness", constraint="min_period + 2 > max_period")
             return (-1e9, -1e9, -1e9, -1e9, -1e9, -1e9, 1e9, -1e9, -1e9)   # Vincolo violato
         if hp_filter_lambda < 1 or hp_filter_lambda > 2e9:
-            print('Constraint violation, hp_filter_lambda < 1 or hp_filter_lambda > 2e9')
+            self.log_debug("Constraint violation", function="genOpt_evaluateFitness", constraint="hp_filter_lambda out of bounds")
             return (-1e9, -1e9, -1e9, -1e9, -1e9, -1e9, 1e9, -1e9, -1e9)   # Vincolo violato
 
 
@@ -581,7 +585,12 @@ class OptimizationMixin:
 
         except Exception as e:
 
-            print(f"genOpt_evaluateFitness, pos 1: an exception occurred: {e}")
+            self.log_error(
+                "Exception while evaluating trading fitness",
+                function="genOpt_evaluateFitness",
+                error=e,
+                traceback=traceback.format_exc(),
+            )
             return (-1e9, -1e9, -1e9, -1e9, -1e9, -1e9, 1e9, -1e9, -1e9)
 
         else:            
@@ -636,8 +645,6 @@ class OptimizationMixin:
                                         MUTPB = 0.35,  # Mutation probability
                                         fitness_function = 'trading_pl', # 'trading_pl', 'mse'
                                         enabled_multiprocessing = True,
-                                        time_tracking = False,
-                                        print_activity_remarks = False
                                        ):
         
         """
@@ -703,9 +710,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
 
 
         """
-        
-        self.print_activity_remarks = print_activity_remarks
-        
         if(folder_path is None):
             folder_path = self.data_storage_path 
         
@@ -785,7 +789,6 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         self.fitness_function = fitness_function
         self.detrend_type = detrend_type
         self.period_related_rebuild_range = period_related_rebuild_range
-        self.time_tracking = time_tracking
         self.windowing = windowing
         self.kaiser_beta = kaiser_beta
 
@@ -795,7 +798,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         
         if(self.period_related_rebuild_range == True): 
             
-            print('Creating period_related_rebuild_range')
+            self.log_info("Creating period-related rebuild range domain", function="genOpt_cycleParsGenOptimization")
         
             start = Decimal('2.0')
             stop = Decimal('6.05')
@@ -807,15 +810,23 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                 self.period_related_rebuild_multiplier_sequence.append(float(current))
                 current += step
     
-            print(f'period_related_rebuild_multiplier_sequence: {self.period_related_rebuild_multiplier_sequence}')
+            self.log_debug(
+                "Period-related rebuild multiplier sequence created",
+                function="genOpt_cycleParsGenOptimization",
+                sequence=self.period_related_rebuild_multiplier_sequence,
+            )
             
         if(self.detrend_type == 'hp_filter'):
             logarithmic_sequence = np.logspace(np.log10(hp_filter_lambda_min), np.log10(hp_filter_lambda_max), num=hp_filter_lambda_n, dtype=int)
             logarithmic_sequence = np.unique(logarithmic_sequence)
             self.genOpt_logarithmic_sequence = logarithmic_sequence
             
-            print(f'hp_filter_lambda_min {hp_filter_lambda_min}')
-            print(f'hp lambda logarithmic sequence: {logarithmic_sequence}')
+            self.log_debug(
+                "HP lambda logarithmic sequence created",
+                function="genOpt_cycleParsGenOptimization",
+                hp_filter_lambda_min=hp_filter_lambda_min,
+                logarithmic_sequence=logarithmic_sequence,
+            )
             
             # Include period-related rebuild multiplier in the search domain.
             if(self.period_related_rebuild_range == True): 
@@ -920,15 +931,19 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         toolbox.register("select", tools.selTournament, tournsize=3)
 
         if(enabled_multiprocessing == True):
-            print(f'multiprocessing.get_start_method = {multiprocessing.get_start_method()}')
+            self.log_debug(
+                "Configuring multiprocessing for genOpt",
+                function="genOpt_cycleParsGenOptimization",
+                start_method=multiprocessing.get_start_method(),
+            )
 
             # Use spawn on Windows before registering pool.map.
             if multiprocessing.get_start_method() != 'spawn':
-                print('Setting Spawn method')
+                self.log_debug("Setting multiprocessing start method to spawn", function="genOpt_cycleParsGenOptimization")
                 multiprocessing.set_start_method('spawn')
 
             cpu_count = multiprocessing.cpu_count()
-            print(f"CPU count: {cpu_count}")
+            self.log_debug("Multiprocessing pool configured", function="genOpt_cycleParsGenOptimization", cpu_count=cpu_count)
 
             # Enable multiprocessing for fitness evaluation.
             pool = multiprocessing.Pool()
@@ -936,7 +951,7 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
         
         else:
             
-            print('Multiprocessing disabled')
+            self.log_info("Multiprocessing disabled for genOpt", function="genOpt_cycleParsGenOptimization")
 
 
         # Create the initial population.
@@ -961,18 +976,27 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             for fit, ind in zip(fits, offspring):
                 ind.fitness.values = fit
                 count += 1
-                print("genOpt_cycleParsGenOptimization, generation number: " + str(gen+1) + "/" + str(NGEN)+ ", population number " + str(count) + "/" + str(population_n))
-                sys.stdout.flush()
+                self.log_debug(
+                    "genOpt individual evaluated",
+                    function="genOpt_cycleParsGenOptimization",
+                    generation=gen + 1,
+                    generations=NGEN,
+                    population_index=count,
+                    population_n=population_n,
+                )
                 
             population = toolbox.select(offspring, k=len(population))
 
             best_individual = tools.selBest(population, k=1)[0]
             best_fitness = best_individual.fitness.values
             
-            print("-------------------------------------------------------------------")
-            print(f'best_fitness for multirange pars optimization {best_fitness}')
-            print(f'best_individual for multirange pars optimization {best_individual}')
-            print("-------------------------------------------------------------------")
+            self.log_info(
+                "genOpt generation completed",
+                function="genOpt_cycleParsGenOptimization",
+                generation=gen + 1,
+                best_fitness=best_fitness,
+                best_individual=list(best_individual),
+            )
             
             best_fitness_value_sum = best_fitness[0]
                 
@@ -1071,15 +1095,14 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
 
 
             results_history.loc[len(results_history)] = new_row
-            sys.stdout.flush()
             
             self.save_dataframe(dataframe = results_history, folder_path = folder_path, file_name = file_name)
 
             if(self.output_clearing == True):
                 clear_output(wait=True)
                 
-            display(results_history)
-            sys.stdout.flush()
+            if self.is_log_enabled("DEBUG"):
+                display(results_history)
 
 
         if(enabled_multiprocessing == True):
@@ -1098,12 +1121,13 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
                             filter_column_name = 'run_start_datetime',
                             filter_column_value = run_start_datetime)
 
-        print("Final results")
+        self.log_info("genOpt final results saved", function="genOpt_cycleParsGenOptimization")
         
         if(self.output_clearing == True):
             clear_output(wait=True)
             
-        display(final_history)
+        if self.is_log_enabled("DEBUG"):
+            display(final_history)
 
 
 

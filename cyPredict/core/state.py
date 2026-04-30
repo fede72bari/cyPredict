@@ -1,11 +1,12 @@
 """State and lifecycle helpers for :class:`cyPredict.cypredict.cyPredict`."""
 
 from enum import Enum
-import time
 
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+
+from cyPredict.logging_utils import CyPredictLogger
 
 
 class StateMixin:
@@ -27,9 +28,12 @@ class StateMixin:
                  data_end_date=None,
                  data_timeframe="1d",
                  data_storage_path="\\cyPredict\\",
-                 time_tracking=False,
                  output_clearing=False,
-                 print_activity_remarks=True):
+                 log_level="WARNING",
+                 log_to_console=False,
+                 log_to_file=False,
+                 log_dir="logs",
+                 log_run_id=None):
         """Create an analysis instance and immediately initialize market data.
 
         Parameters
@@ -60,13 +64,21 @@ class StateMixin:
         data_storage_path : str, default "\\cyPredict\\"
             Base path used by later file-writing/reporting helpers. It does not
             change the initial data download.
-        time_tracking : bool, default False
-            Enables elapsed-time prints through ``track_time``.
         output_clearing : bool, default False
             Legacy notebook flag retained for workflows that clear notebook
             output between long processing steps.
-        print_activity_remarks : bool, default True
-            Enables verbose progress prints in selected workflows.
+        log_level : {"DEBUG", "INFO", "WARNING", "ERROR"}, default "WARNING"
+            Minimum structured logging level. ``INFO`` includes processing and
+            timing events; ``DEBUG`` includes diagnostic events and intermediate
+            objects.
+        log_to_console : bool, default False
+            Emit structured log lines to console.
+        log_to_file : bool, default False
+            Persist log lines and JSONL events under ``log_dir``.
+        log_dir : str, default "logs"
+            Directory used when ``log_to_file`` is true.
+        log_run_id : str, optional
+            Stable run identifier. When omitted, a short random id is created.
 
         Notes
         -----
@@ -82,7 +94,7 @@ class StateMixin:
         ...     data_start_date="2022-01-01",
         ...     data_end_date="2024-01-01",
         ...     data_timeframe="1d",
-        ...     print_activity_remarks=False,
+        ...     log_level="WARNING",
         ... )
         >>> cp.state["data_state"]
         'initialized'
@@ -95,7 +107,15 @@ class StateMixin:
         self.data_end_date = data_end_date
         self.data = []
         self.data_storage_path = data_storage_path
-        self.print_activity_remarks = print_activity_remarks
+        self.logger = CyPredictLogger(
+            ticker=ticker,
+            timeframe=data_timeframe,
+            log_dir=log_dir,
+            run_id=log_run_id,
+            min_level=log_level,
+            log_to_console=log_to_console,
+            log_to_file=log_to_file,
+        )
 
         self.genOpt_last_date = ''
         self.genOpt_logarithmic_sequence = []
@@ -144,17 +164,22 @@ class StateMixin:
 
         self.scaler = MinMaxScaler(feature_range=(-1, 1))
 
-        self.time_tracking = time_tracking
-        self.start_time = time.time()
-        self.end_time = time.time()
-
         self.output_clearing = output_clearing
 
-    def track_time(self, message):
-        if self.time_tracking:
-            self.end_time = time.time()
-            print(f'{message}, delta time: {self.end_time - self.start_time}')
-            self.start_time = time.time()
+    def is_log_enabled(self, level):
+        return self.logger.is_enabled(level)
 
-    def set_start_time(self):
-        self.start_time = time.time()
+    def log_debug(self, message, *, function=None, **context):
+        return self.logger.debug(message, function=function, **context)
+
+    def log_info(self, message, *, function=None, **context):
+        return self.logger.info(message, function=function, **context)
+
+    def log_warning(self, message, *, function=None, **context):
+        return self.logger.warning(message, function=function, **context)
+
+    def log_error(self, message, *, function=None, **context):
+        return self.logger.error(message, function=function, **context)
+
+    def log_timing(self, message, *, function=None, **context):
+        return self.logger.timing(message, function=function, **context)

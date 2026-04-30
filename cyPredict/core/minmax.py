@@ -125,8 +125,6 @@ class MinMaxMixin:
         N_elements_goertzel_CDC=3,
         N_elements_alignmentsKPI_CDC=10,
         N_elements_weigthed_alignmentsKPI_CDCC=10,
-        time_tracking=True,
-        print_activity_remarks=False
     ):
         """Build one min/max feature row for a single analysis date.
 
@@ -162,9 +160,6 @@ class MinMaxMixin:
         N_elements_alignmentsKPI_CDC, N_elements_weigthed_alignmentsKPI_CDCC : int
             Number of past/future extrema features retained for each signal
             family.
-        time_tracking, print_activity_remarks : bool
-            Runtime/progress logging flags.
-
         Returns
         -------
         pandas.DataFrame
@@ -205,8 +200,6 @@ class MinMaxMixin:
             kaiser_beta=kaiser_beta,
             enabled_multiprocessing=enabled_multiprocessing,
             show_charts=False,
-            time_tracking=time_tracking,
-            print_activity_remarks=print_activity_remarks
         )
 
         datetime_df['datetime'] = [current_date]
@@ -320,8 +313,6 @@ class MinMaxMixin:
         windowing=None,
         kaiser_beta=1,
         enabled_multiprocessing=True,
-        time_tracking=True,
-        print_activity_remarks=False
     ):
         """Create or resume an incremental min/max analysis dataframe.
 
@@ -357,9 +348,6 @@ class MinMaxMixin:
         discretization_steps, lowess_k, windowing, kaiser_beta,
         enabled_multiprocessing
             Passed through to ``min_max_analysis_concatenated_dataframe``.
-        time_tracking, print_activity_remarks : bool
-            Runtime/progress logging flags.
-
         Returns
         -------
         pandas.DataFrame
@@ -371,13 +359,13 @@ class MinMaxMixin:
         if resume and os.path.exists(file_path_name):
             min_max_CDC_analysis_df = pd.read_csv(file_path_name, parse_dates=['datetime'])
 
-            print("File CSV esistente caricato.")
+            self.log_info("Existing min/max CSV loaded", function="get_min_max_analysis_df", file_path=file_path_name)
         else:
             min_max_CDC_analysis_df = pd.DataFrame()
-            print("Nessun file CSV trovato o resume == False. Creazione di un nuovo dataframe.")
+            self.log_info("Creating new min/max dataframe", function="get_min_max_analysis_df", file_path=file_path_name, resume=resume)
 
         if pd.to_datetime(current_date) not in self.data.index:
-            print(f"Data {current_date} non trovata nei dati. Uscita.")
+            self.log_warning("Current date not found in data", function="get_min_max_analysis_df", current_date=current_date)
             return min_max_CDC_analysis_df
 
         start_idx = self.data.index.get_loc(pd.to_datetime(current_date)) - lookback_periods
@@ -391,7 +379,7 @@ class MinMaxMixin:
             filtered_data = filtered_data.loc[missing_dates]
 
         else:
-            print("Il file CSV e' vuoto, quindi tutte le date sono considerate nuove.")
+            self.log_info("Min/max CSV is empty; every filtered date is new", function="get_min_max_analysis_df")
 
         for date in filtered_data.index:
             if date.tzinfo is None:
@@ -399,9 +387,11 @@ class MinMaxMixin:
             else:
                 date_str = date.isoformat()
 
-            print('\n\n----------------------------------------------------------')
-            print(f'min_max_analysis_concatenated_dataframe on date {date_str}')
-            print('----------------------------------------------------------')
+            self.log_info(
+                "Running min_max_analysis_concatenated_dataframe",
+                function="get_min_max_analysis_df",
+                date=date_str,
+            )
 
             if retrieve_pars_from_file and optimized_pars_filepath is not None:
                 cycles_parameters = self.get_most_updated_optimization_pars(optimized_pars_filepath, date_str)
@@ -440,8 +430,6 @@ class MinMaxMixin:
                 windowing=windowing,
                 kaiser_beta=kaiser_beta,
                 enabled_multiprocessing=enabled_multiprocessing,
-                time_tracking=time_tracking,
-                print_activity_remarks=print_activity_remarks
             )
 
             if 'datetime' in analyzed_row.columns:
@@ -453,6 +441,6 @@ class MinMaxMixin:
             min_max_CDC_analysis_df = min_max_CDC_analysis_df.drop_duplicates(subset=['datetime'], keep='first')
 
             min_max_CDC_analysis_df.to_csv(file_path_name, index=False)
-            print(f"CSV aggiornato e salvato: {file_path_name}")
+            self.log_info("Min/max CSV updated", function="get_min_max_analysis_df", file_path=file_path_name)
 
         return min_max_CDC_analysis_df

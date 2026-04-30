@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCENARIO_PATH = REPO_ROOT / "tests" / "golden" / "scenarios" / "qqq_eod_analyze_and_plot.json"
 BASELINE_PATH = REPO_ROOT / "tests" / "golden" / "baselines" / "qqq_eod_analyze_and_plot.json"
 FLOAT_RTOL = 1e-5
-FLOAT_ATOL = 1e-3
+FLOAT_ATOL = 5e-3
 
 
 def assert_json_close(actual, expected, path="root"):

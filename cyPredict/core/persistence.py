@@ -211,13 +211,20 @@ class PersistenceMixin:
                         f"{int(row['hp_filter_lambda'])}]"
                     )
 
-                print(f"# Hyperparameers for {df['ticker_symbol'].unique()[0]} ticker:")
-                print("# -----------------------------------------------------------")
-                print(result_string)
+                self.log_info(
+                    "Generated cycle-parameter dataframe code",
+                    function="get_most_updated_optimization_pars",
+                    ticker=df['ticker_symbol'].unique()[0],
+                    code=result_string,
+                )
 
         else:
-            print("No results for past dates.")
+            self.log_warning("No optimization results for past dates", function="get_most_updated_optimization_pars")
 
-        print(f"analysis_reference_date: {final_result.iloc[0]['analysis_reference_date']}")
+        self.log_info(
+            "Selected optimization parameters",
+            function="get_most_updated_optimization_pars",
+            analysis_reference_date=final_result.iloc[0]['analysis_reference_date'],
+        )
 
         return final_result

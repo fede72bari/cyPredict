@@ -55,8 +55,6 @@ class MultiperiodMixin:
                              period_related_rebuild_multiplier = 2.5,
                              discretization_steps = 1000,
                              enabled_multiprocessing = True,
-                             time_tracking = False,
-                             print_activity_remarks = False 
                             ):
         """Run multiple period ranges and refit the combined cycle signal.
 
@@ -134,11 +132,6 @@ class MultiperiodMixin:
         enabled_multiprocessing : bool, default True
             Enables multiprocessing in supported optimizer branches. Nested
             callers often disable this to avoid double multiprocessing.
-        time_tracking : bool, default False
-            Enables elapsed-time prints.
-        print_activity_remarks : bool, default False
-            Enables verbose progress prints and displayed intermediate rows.
-
         Returns
         -------
         tuple
@@ -167,9 +160,14 @@ class MultiperiodMixin:
         ...     enabled_multiprocessing=False)
         """
 
-        
-        print(f'Data column name: {data_column_name}')
-        print(f'windowing {windowing}, kaiser_beta {kaiser_beta}')
+        self.log_info(
+            "multiperiod_analysis started",
+            function="multiperiod_analysis",
+            data_column_name=data_column_name,
+            windowing=windowing,
+            kaiser_beta=kaiser_beta,
+            opt_algo_type=opt_algo_type,
+        )
         scaler = self.scaler
         
         self.windowing = windowing
@@ -200,7 +198,6 @@ class MultiperiodMixin:
         self.detrend_type = detrend_type
         self.lowess_k = lowess_k
         self.linear_filter_window_size_multiplier = linear_filter_window_size_multiplier
-        self.print_activity_remarks = print_activity_remarks
 
 
         elaborated_data_series = [] # pd.DataFrame()
@@ -212,16 +209,12 @@ class MultiperiodMixin:
             detrend_type = 'hp_filter'
 
 
-        if(self.print_activity_remarks):  
-            print("----------------------------------------------------")
-            print("   Starting multiperiod_analysis, parameters:")
-            print("----------------------------------------------------")
-    
-            for k, v in locals().items():
-                print(f"{k} = {v}")
-
-            print('\nMultiperiod analysis')            
-            self.track_time('1. multiperiod_analysis: entering for loop, start calling analyze_and_plot')
+        self.log_debug(
+            "multiperiod_analysis parameters",
+            function="multiperiod_analysis",
+            parameters={k: v for k, v in locals().items() if k != "self"},
+        )
+        self.log_timing('1. multiperiod_analysis: entering for loop, start calling analyze_and_plot', function="multiperiod_analysis")
             
 
         # Optionally reduce the dataframe before single-range detrending.
@@ -240,13 +233,25 @@ class MultiperiodMixin:
             start_idx = max(0, idx_max_time - protective_length)
         
             reduced_data = original_data.iloc[start_idx:]
-            print(f"🔒 Protective cut: using last {len(reduced_data)} samples from index {start_idx} to {idx_max_time}")
-            print(f"\tStart date     : {reduced_data.index[0]}")
-            print(f"\tEnd date       : {reduced_data.index[-1]}")
-            print(f"\tCurrent date   : {current_date}")
+            self.log_info(
+                "Protective data cut applied",
+                function="multiperiod_analysis",
+                samples=len(reduced_data),
+                start_index=start_idx,
+                end_index=idx_max_time,
+                start_date=reduced_data.index[0],
+                end_date=reduced_data.index[-1],
+                current_date=current_date,
+            )
         else:
-            print(f"original dataset has not been reduced: using {len(reduced_data)} samples from index {start_idx} to {idx_max_time}")
             reduced_data = original_data
+            self.log_info(
+                "Original dataset not reduced",
+                function="multiperiod_analysis",
+                samples=len(reduced_data),
+                start_index=start_idx,
+                end_index=idx_max_time,
+            )
 
             
         
@@ -277,8 +282,14 @@ class MultiperiodMixin:
                 lowess_k = lowess_k
                 
              
-            print(f'\nStarted periods analysis in range[{min_period}, {max_period}]')
-            if(self.print_activity_remarks):
+            self.log_info(
+                "Started period-range analysis",
+                function="multiperiod_analysis",
+                min_period=min_period,
+                max_period=max_period,
+                num_samples=num_samples,
+            )
+            if self.is_log_enabled("DEBUG"):
                 display(row)
 
             max_length_series = 0
@@ -312,7 +323,6 @@ class MultiperiodMixin:
                              other_correlations = True,
                              show_charts = False,
                              print_report = False,
-                             time_tracking = time_tracking
                             )
         
             
@@ -329,9 +339,8 @@ class MultiperiodMixin:
         # ---------------------------------------------------------------
         # Build the multi-range reference signal and cycle table
         # ---------------------------------------------------------------
-        if(self.print_activity_remarks):
-            print('\nRe-Factorization of Cyrcles Amplitude')        
-            self.track_time('\n2. multiperiod_analysis: starting Re-Factorize Cyrcles Amplitude')
+        self.log_debug("Starting cycle amplitude refactorization", function="multiperiod_analysis")
+        self.log_timing('\n2. multiperiod_analysis: starting Re-Factorize Cyrcles Amplitude', function="multiperiod_analysis")
 
         # Select the reference detrended series for optimizer fitness.
         if(reference_detrended_data == "less_detrended"):
@@ -344,7 +353,11 @@ class MultiperiodMixin:
         if(reference_detrended_data == "longest"):
             index_detrended_data = max(range(len(configurations_series)), key=lambda i: configurations_series[i]['num_samples'])
             
-        print(f'index_detrended_data {index_detrended_data}')
+        self.log_debug(
+            "Selected reference detrended series",
+            function="multiperiod_analysis",
+            index_detrended_data=index_detrended_data,
+        )
 
         self.MultiAn_reference_detrended_data = elaborated_data_series[index_detrended_data]['detrended'][0:index_of_max_time_for_cd+1]
         
@@ -410,8 +423,7 @@ class MultiperiodMixin:
         up_series = pd.Series([detrended_abs_max] * cycles_n)
         low_series = pd.Series([0] * cycles_n)
         
-        if(self.print_activity_remarks):
-            self.track_time('3. multiperiod_analysis: end Re-Factorize Cyrcles Amplitude')
+        self.log_timing('3. multiperiod_analysis: end Re-Factorize Cyrcles Amplitude', function="multiperiod_analysis")
         
         
 
@@ -419,8 +431,7 @@ class MultiperiodMixin:
         # Re-estimate amplitudes with Goertzel on the reference signal
         # -------------------------------------------------------
         
-        if(self.print_activity_remarks):
-            self.track_time('\n4. multiperiod_analysis: starting Goertzel best amplitudes')
+        self.log_timing('\n4. multiperiod_analysis: starting Goertzel best amplitudes', function="multiperiod_analysis")
 
         goertzel_best_refactoring_df = pd.DataFrame({
             'peak_periods': pd.Series(dtype='float64'),
@@ -454,8 +465,7 @@ class MultiperiodMixin:
         self.goertzel_amplitudes = goertzel_amplitudes
         self.MultiAn_dominant_cycles_df["single_range_goertzel_peak_amplitudes"] = goertzel_best_refactoring_df['peak_amplitudes']
         
-        if(self.print_activity_remarks):
-            self.track_time('\n5. multiperiod_analysis: end Goertzel best amplitudes')
+        self.log_timing('\n5. multiperiod_analysis: end Goertzel best amplitudes', function="multiperiod_analysis")
         
         
         
@@ -510,14 +520,22 @@ class MultiperiodMixin:
                 # Store the best amplitude found for this cycle.
                 amplitudes.append(best_amplitude)
                 best_fitness_value = best_error
-                print('Period ' + str(row['peak_periods']) + f', best amplitude {best_amplitude}, best_fitness_value {best_fitness_value}')
+                self.log_info(
+                    "Mono-frequency best amplitude found",
+                    function="multiperiod_analysis",
+                    peak_period=row['peak_periods'],
+                    best_amplitude=best_amplitude,
+                    best_fitness_value=best_fitness_value,
+                )
                 
                 # Add this cycle to the cumulative rebuilt signal.
                 composite_dominant_cycle_signal = composite_dominant_cycle_signal + temp_rebuilt_signal
            
-            if(self.print_activity_remarks):    
-                print('Single cycle best fitting, aplitudes:')
-                print(amplitudes)
+            self.log_debug(
+                "Single-cycle best fitting amplitudes",
+                function="multiperiod_analysis",
+                amplitudes=amplitudes,
+            )
             
         # -------------------------------------------------------
         # DEAP optimizer for amplitudes and optional frequency/phase tuning
@@ -530,7 +548,7 @@ class MultiperiodMixin:
 
             
  
-            self.track_time('\n6. Genetics algo for best amplitudes identification, start inizializing')
+            self.log_timing('\n6. Genetics algo for best amplitudes identification, start inizializing', function="multiperiod_analysis")
     
 
             # Register DEAP fitness type once per process.
@@ -613,7 +631,7 @@ class MultiperiodMixin:
                     multiprocessing.set_start_method('spawn')
 
                 cpu_count = multiprocessing.cpu_count()
-                print(f"CPU count: {cpu_count}")
+                self.log_debug("Multiprocessing pool configured", function="multiperiod_analysis", cpu_count=cpu_count)
 
                 pool = multiprocessing.Pool()
                 toolbox.register("map", pool.map)
@@ -622,7 +640,7 @@ class MultiperiodMixin:
             # Create the initial population.
             population = toolbox.population(n=population_n)
             
-            self.track_time('6. Genetics algo for best amplitudes identification, end inizialization')
+            self.log_timing('6. Genetics algo for best amplitudes identification, end inizialization', function="multiperiod_analysis")
         
 
             for gen in range(NGEN):
@@ -650,12 +668,12 @@ class MultiperiodMixin:
             best_fitness = best_individual.fitness.values
 
 
-            if(self.print_activity_remarks):
-                print("\n\n--------------------------------------------------------")
-                print("Multirange Analysis Genetics Optimization results:")
-                print('\tbest_individual: ' + str(best_individual))
-                print('\tbest_fitness: ' + str(best_fitness))
-                print("--------------------------------------------------------")
+            self.log_debug(
+                "DEAP optimization completed",
+                function="multiperiod_analysis",
+                best_individual=list(best_individual),
+                best_fitness=best_fitness,
+            )
                 
 
 
@@ -674,7 +692,8 @@ class MultiperiodMixin:
             best_fitness_value = best_fitness[0]
             self.MultiAn_dominant_cycles_df['best_fitness'] = best_fitness_value
 
-            display(self.MultiAn_dominant_cycles_df)
+            if self.is_log_enabled("DEBUG"):
+                display(self.MultiAn_dominant_cycles_df)
 
 
 
@@ -684,9 +703,13 @@ class MultiperiodMixin:
 
         elif opt_algo_type == 'cpp_genetic_amp_freq_phase':
 
-            print(f"self.MultiAn_dominant_cycles_df columns: {self.MultiAn_dominant_cycles_df.columns}")
+            self.log_debug(
+                "C++ optimization input columns",
+                function="multiperiod_analysis",
+                columns=list(self.MultiAn_dominant_cycles_df.columns),
+            )
             
-            self.track_time('\n6. C++ Genetic Optimization start')
+            self.log_timing('\n6. C++ Genetic Optimization start', function="multiperiod_analysis")
         
             n_cycles = len(self.MultiAn_dominant_cycles_df)
             
@@ -701,7 +724,7 @@ class MultiperiodMixin:
             
             phase_init = self.MultiAn_dominant_cycles_df['peak_phases'].to_numpy()
 
-            print(f"amp_init: {amp_init}")
+            self.log_debug("C++ amplitude initialization", function="multiperiod_analysis", amp_init=amp_init)
 
 
             initial_vector = []
@@ -716,7 +739,7 @@ class MultiperiodMixin:
                 middle_value = (self.MultiAn_detrended_max - self.MultiAn_detrended_min) / 2
                 initial_vector += [middle_value] * n_cycles
 
-                print(f"Amplitudes middle vale {middle_value}")
+                self.log_debug("Using middle amplitude initialization", function="multiperiod_analysis", middle_value=middle_value)
                 
             elif amplitudes_inizialization_type == "transform_amplitudes":
                 initial_random_amplitudes = False
@@ -739,7 +762,7 @@ class MultiperiodMixin:
             amp_min = [0.0] * n_cycles
             amp_max = [detrended_abs_max] * n_cycles
 
-            print(f"detrended_abs_max {detrended_abs_max}")
+            self.log_debug("Reference detrended absolute max", function="multiperiod_analysis", detrended_abs_max=detrended_abs_max)
         
             if self.frequencies_ft:
                 freq_min = (freq_init * 0.90).tolist()
@@ -776,7 +799,7 @@ class MultiperiodMixin:
 
             if(enabled_multiprocessing):
 
-                print('run_genetic_algorithm_multicore')
+                self.log_info("Running C++ multicore genetic optimizer", function="multiperiod_analysis")
 
 
                 if self.period_related_rebuild_range:
@@ -823,7 +846,7 @@ class MultiperiodMixin:
 
             else:
 
-                print('run_genetic_algorithm')
+                self.log_info("Running C++ single-core genetic optimizer", function="multiperiod_analysis")
 
                 try:
                     best_flat = run_genetic_algorithm(
@@ -880,13 +903,13 @@ class MultiperiodMixin:
 
 
         
-            if self.print_activity_remarks:
-                print("\n\n--------------------------------------------------------")
-                print("C++ Genetic Optimization results:")
-                print('\tbest_fitness: ' + str(self.MultiAn_dominant_cycles_df["best_fitness"].iloc[0]))
-                print("--------------------------------------------------------")
+            self.log_debug(
+                "C++ genetic optimization completed",
+                function="multiperiod_analysis",
+                best_fitness=self.MultiAn_dominant_cycles_df["best_fitness"].iloc[0],
+            )
         
-            self.track_time('6. C++ Genetic Optimization end')
+            self.log_timing('6. C++ Genetic Optimization end', function="multiperiod_analysis")
         
 
             best_fitness_value = self.MultiAn_dominant_cycles_df['best_fitness']
@@ -898,7 +921,7 @@ class MultiperiodMixin:
 
         elif(opt_algo_type == 'nlopt_amplitudes_freqs_phases'):
             
-            self.track_time('\n6. NLopt optimization: start')
+            self.log_timing('\n6. NLopt optimization: start', function="multiperiod_analysis")
             best_individual, best_fitness = self.MultiAn_optimize_NLOPT(
                                                                 optimize_frequencies = self.frequencies_ft,
                                                                 optimize_phases = self.phases_ft,
@@ -920,10 +943,10 @@ class MultiperiodMixin:
             
 
 
-            print(f'Best fitness: {best_fitness_value}')
+            self.log_info("NLopt optimization completed", function="multiperiod_analysis", best_fitness=best_fitness_value)
 
 
-            self.track_time('6. NLopt optimization: end')
+            self.log_timing('6. NLopt optimization: end', function="multiperiod_analysis")
 
 
         # -------------------------------------------------------------------------------------------------------------------------
@@ -1001,19 +1024,19 @@ class MultiperiodMixin:
             self.MultiAn_dominant_cycles_df['best_amplitudes'] = amplitudes
             best_amplitudes = amplitudes
 
-            print("Best Amplitudes:", best_amplitudes)
+            self.log_debug("Hyperopt best amplitudes", function="multiperiod_analysis", best_amplitudes=best_amplitudes)
             
             if self.frequencies_ft:
                 frequencies = [best[f'frequency_{i}'] for i in range(n)]
                 self.MultiAn_dominant_cycles_df['frequency'] = frequencies
                 self.MultiAn_dominant_cycles_df['best_frequencies'] = frequencies
-                print("Best frequencies:", frequencies)
+                self.log_debug("Hyperopt best frequencies", function="multiperiod_analysis", best_frequencies=frequencies)
             
             if self.phases_ft:
                 phases = [best[f'phase_{i}'] for i in range(n)]
                 self.MultiAn_dominant_cycles_df['phase'] = phases
                 self.MultiAn_dominant_cycles_df['best_phases'] = phases
-                print("Best phases:", phases)
+                self.log_debug("Hyperopt best phases", function="multiperiod_analysis", best_phases=phases)
 
 
 
@@ -1022,13 +1045,18 @@ class MultiperiodMixin:
             best_fitness_value = float(best_evaluation["loss"])
             self.MultiAn_dominant_cycles_df['best_fitness'] = best_fitness_value
 
-            display(self.MultiAn_dominant_cycles_df)
+            if self.is_log_enabled("DEBUG"):
+                display(self.MultiAn_dominant_cycles_df)
 
             amplitudes = best_amplitudes
 
         else:
 
-            print("Errore: optmization type not in list ('mono_frequency', 'genetic_omny_frequencies', 'tpe', 'atpe')")
+            self.log_error(
+                "Optimization type not supported",
+                function="multiperiod_analysis",
+                opt_algo_type=opt_algo_type,
+            )
             return None, None, None, None, None, None
 
 
@@ -1036,8 +1064,8 @@ class MultiperiodMixin:
         # Create composite signals from optimized cycle parameters
         # -----------------------------------------------------------------------
 
-        if(self.print_activity_remarks):
-            self.track_time('\n9. Genetics start composite signal creation')
+        if self.is_log_enabled("DEBUG"):
+            self.log_timing('\n9. Genetics start composite signal creation', function="multiperiod_analysis")
 
 
         temp_circle_signal = []
@@ -1047,17 +1075,21 @@ class MultiperiodMixin:
         len_series = len(self.data) #len(self.MultiAn_reference_detrended_data)
 
         # Use the longest single-range index as the composite signal index.
-        print(f"len_series {len_series}")
-        print(f"len elaborated_data_series {len(elaborated_data_series)}")
-        print(f"max_length_series_index {max_length_series_index}")
+        self.log_debug(
+            "Composite signal sizing",
+            function="multiperiod_analysis",
+            len_series=len_series,
+            elaborated_data_series_count=len(elaborated_data_series),
+            max_length_series_index=max_length_series_index,
+        )
 
         
         df_indexes_list = elaborated_data_series[max_length_series_index].index
 
-        self.track_time('\t9.a. Genetics start composite_signal')
+        self.log_timing('\t9.a. Genetics start composite_signal', function="multiperiod_analysis")
         composite_signal = self.cicles_composite_signals(max_length_series, amplitudes,self.MultiAn_dominant_cycles_df, df_indexes_list, 'composite_signal')       
 
-        self.track_time('\t9.b. Genetics: end composite_signal, start alignmentsKPI')
+        self.log_timing('\t9.b. Genetics: end composite_signal, start alignmentsKPI', function="multiperiod_analysis")
         
         alignmentsKPI = pd.Series()
         weigthed_alignmentsKPI = pd.Series()
@@ -1070,18 +1102,17 @@ class MultiperiodMixin:
                                                                             self.MultiAn_dominant_cycles_df['peak_periods'])
             
         else:
-            if(self.print_activity_remarks):
-                print('alignmentsKPI and weigthed_alignmentsKPI analysis disabled')
+            self.log_debug("Alignment KPI analysis disabled", function="multiperiod_analysis")
 
-        if(self.print_activity_remarks):
-            self.track_time('\t9.c. Genetics: end alignmentsKPI, start cicles_composite_signals')    
+        if self.is_log_enabled("DEBUG"):
+            self.log_timing('\t9.c. Genetics: end alignmentsKPI, start cicles_composite_signals', function="multiperiod_analysis")
 
         temp = self.cicles_composite_signals(max_length_series, goertzel_amplitudes, goertzel_best_refactoring_df, df_indexes_list, 'goertzel_composite_signal')
         
         composite_signal = pd.concat([composite_signal, temp], axis=1)
 
-        if(self.print_activity_remarks):
-            self.track_time('10. Genetics end composite and alignmentsKPI signal creation')
+        if self.is_log_enabled("DEBUG"):
+            self.log_timing('10. Genetics end composite and alignmentsKPI signal creation', function="multiperiod_analysis")
 
         
 
@@ -1092,9 +1123,8 @@ class MultiperiodMixin:
         # Scale composite and alignment signals for output
         # -------------------------------------------------
         
-        if(self.print_activity_remarks):
-            print("\nSignals scaling")
-            self.track_time('\n11. Genetics end composite signal creation')
+        self.log_debug("Scaling output signals", function="multiperiod_analysis")
+        self.log_timing('\n11. Genetics end composite signal creation', function="multiperiod_analysis")
 
         scaled_signals = pd.DataFrame()
 
@@ -1130,18 +1160,22 @@ class MultiperiodMixin:
             scaled_signals['scaled_alignmentsKPI'] = scaled_alignmentsKPI = np.zeros(len(scaled_signals['scaled_composite_signal']))
             scaled_signals['scaled_weigthed_alignmentsKPI'] = scaled_weigthed_alignmentsKPI = np.zeros(len(scaled_signals['scaled_composite_signal']))
 
-        if(self.print_activity_remarks):
-            self.track_time('12. Genetics end composite signal creation')
+        if self.is_log_enabled("DEBUG"):
+            self.log_timing('12. Genetics end composite signal creation', function="multiperiod_analysis")
             
    
 
-        print(f"BEFORE CHART PLOTTING, index_of_max_time_for_cd {index_of_max_time_for_cd}")
+        self.log_debug(
+            "Composite signal ready before chart plotting",
+            function="multiperiod_analysis",
+            index_of_max_time_for_cd=index_of_max_time_for_cd,
+        )
         # -------------------------------------------------
         # Optional Plotly diagnostics
         # -------------------------------------------------
 
-        if(self.print_activity_remarks):
-            print('Before CHARTS PLOT')            
+        if self.is_log_enabled("DEBUG"):
+            self.log_debug("Before charts plot", function="multiperiod_analysis")
             
 
         if(show_charts == True):
@@ -1173,7 +1207,7 @@ class MultiperiodMixin:
             missing_values = composite_signal['composite_signal'].isnull().any()
 
             if missing_values:
-                print("Ci sono valori mancanti nella serie.")
+                self.log_warning("Missing values detected in composite signal", function="multiperiod_analysis")
                 
 
             fig.add_trace(go.Scatter(x=elaborated_data_series[max_length_series_index].index,
@@ -1441,11 +1475,14 @@ class MultiperiodMixin:
             
             plot(fig, filename=f'multirange analysis for {self.ticker}.html', auto_open=False)
             
-            print(f"Type of reduced_data .index: {type(reduced_data .index)}")
-            print(f"Timezone of reduced_data .index: {reduced_data .index.tz}")
-
-            print(f"Type of elaborated_data_series index: {type(elaborated_data_series[max_length_series_index].index)}")
-            print(f"Timezone of elaborated_data_series index: {elaborated_data_series[max_length_series_index].index.tz}")
+            self.log_debug(
+                "Chart index diagnostics",
+                function="multiperiod_analysis",
+                reduced_index_type=type(reduced_data.index),
+                reduced_index_timezone=reduced_data.index.tz,
+                elaborated_index_type=type(elaborated_data_series[max_length_series_index].index),
+                elaborated_index_timezone=elaborated_data_series[max_length_series_index].index.tz,
+            )
 
 
 
