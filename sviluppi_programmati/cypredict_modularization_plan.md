@@ -18,6 +18,11 @@ Data: 2026-04-29
 - Fase 8.2 parziale completata in questo ciclo di lavoro: `core/extrema.py` contiene `ExtremaMixin`, helper trade/extrema, correlazione CDC/detrended e `MultiAn_cyclesAlignKPI`.
 - Fase 8.3 completata in questo ciclo di lavoro: `core/minmax.py` contiene `MinMaxMixin`, `min_max_analysis`, `min_max_analysis_concatenated_dataframe` e `get_min_max_analysis_df`.
 - Fase 9.1 completata in questo ciclo di lavoro: `core/persistence.py` contiene `PersistenceMixin`, `save_dataframe` e `get_most_updated_optimization_pars`.
+- Fase 7.3 completata in questo ciclo di lavoro: aggiunta una matrice smoke live-data in `scripts/run_optimization_smoke_matrix.py` e `tests/test_optimization_smoke_matrix.py` per QQQ ed ES=F, monorange e multirange, con DEAP, C++ single-core, C++ multicore, NLopt, TPE e ATPE in configurazioni senza fine tuning, solo frequenze, solo fasi e frequenze+fasi.
+- Correzione packaging completata: `pyproject.toml` usa discovery `cyPredict*` cosi' include anche `cyPredict.core` nelle installazioni pulite.
+- Fix verificati su `core/multiperiod.py`: conversione intera dell'indice `start_rebuilt_signal_index` nel ramo `mono_frequency`, gestione vettori full/active per il GA C++ in tutte le combinazioni `frequencies_ft`/`phases_ft`, fallback per la firma legacy della DLL single-core e fitness scalare per TPE/ATPE.
+- Nota tecnica emersa dai test: la DLL `cyGAopt` single-core installata espone una firma a 9 argomenti, mentre il sorgente C++ versionato in `native/cygaopt/cyGAopt.cpp` dichiara una firma a 11 argomenti. Serve ricompilazione o allineamento esplicito prima di considerare C++ single-core equivalente al sorgente.
+- Nota funzionale da non modificare senza approvazione: `cicles_composite_signals` usa ancora `peak_frequencies` e `peak_phases` nella ricostruzione finale, non le colonne `best_frequencies` e `best_phases`. Quindi il fine tuning frequenza/fase viene usato nella fitness, ma non cambia ancora la composizione finale del segnale.
 - La classe pubblica resta `cyPredict.cyPredict` e ora eredita da `AnalysisMixin`, `StateMixin`, `DataMixin`, `DatesMixin`, `DetrendingMixin`, `SpectralMixin`, `DiagnosticsMixin`, `ExtremaMixin`, `IndicatorsMixin`, `MinMaxMixin`, `MultiperiodMixin`, `OptimizationMixin`, `PersistenceMixin`, `ReconstructionMixin` e `ScoringMixin`.
 - Gli import legacy sono stati mantenuti prima dell'import dei mixin: questa regola e' importante per evitare cambiamenti indiretti nell'ordine di inizializzazione delle librerie scientifiche/native. Unica eccezione verificata: l'import `yfinance` e' stato rimosso dal monolite perche' ora e' locale a `core/data.py` e il golden QQQ resta stabile.
 - Gli import calendario storici (`pytz`, `timezone`, `USFederalHolidayCalendar`, `BDay`, `timedelta`, `date`) restano temporaneamente nel monolite anche se non sono referenziati direttamente: la loro rimozione ha prodotto drift golden, quindi vanno trattati solo in un commit dedicato con analisi dell'ordine di import.
@@ -472,6 +477,14 @@ Da aggiungere:
 - golden multiperiod QQQ o ES=F;
 - golden min/max ridotto;
 - smoke test service GammaSignalForge-like.
+- matrice smoke ottimizzatori live-data quando si tocca `multiperiod_analysis` o codice nativo:
+
+```powershell
+$env:CYPREDICT_RUN_OPTIMIZATION_MATRIX='1'
+$env:PYTHONIOENCODING='utf-8'
+& 'C:\Users\Federico\anaconda3\envs\cyenv\python.exe' -m pytest tests\test_optimization_smoke_matrix.py -q
+& 'C:\Users\Federico\anaconda3\envs\cyenv\python.exe' scripts\run_optimization_smoke_matrix.py --quick --output outputs\optimization_smoke_matrix_quick.json
+```
 
 ## Regole Di Stop
 

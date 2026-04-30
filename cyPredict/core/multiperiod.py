@@ -479,9 +479,11 @@ class MultiperiodMixin:
             
             # Iterate periods in descending order.
             for index, row in self.MultiAn_dominant_cycles_df.iterrows():
-                
-                comparision_length = int(2.5 * row['peak_periods']) # comparision length
-                length = (len_series - row['start_rebuilt_signal_index'])
+
+                peak_period = float(row['peak_periods'])
+                start_rebuilt_signal_index = int(row['start_rebuilt_signal_index'])
+                comparision_length = int(2.5 * peak_period) # comparision length
+                length = int(len_series - start_rebuilt_signal_index)
                 start_comparison_index = len_series - comparision_length
                 
                 # Sweep candidate amplitudes in descending order.
@@ -491,7 +493,7 @@ class MultiperiodMixin:
                     temp_circle_signal = pd.Series([0.0] * len_series)
                     time = np.linspace(0, length, length, endpoint=False)
 
-                    temp_circle_signal[row['start_rebuilt_signal_index']:] = temp_amp * np.sin(2 * np.pi * row['peak_frequencies'] * time + row['peak_phases'])
+                    temp_circle_signal[start_rebuilt_signal_index:] = temp_amp * np.sin(2 * np.pi * row['peak_frequencies'] * time + row['peak_phases'])
 
                     temp_rebuilt_signal = composite_dominant_cycle_signal + temp_circle_signal
                     
@@ -755,24 +757,20 @@ class MultiperiodMixin:
                 phase_max = phase_init.tolist()
 
         
-            lb = []
-            ub = []
+            lb = amp_min.copy() + freq_min + phase_min
+            ub = amp_max.copy() + freq_max + phase_max
 
-            lb = amp_min.copy()
-            ub = amp_max.copy()
-            
-            if self.frequencies_ft:
-                lb += freq_min
-                ub += freq_max
-            
-            if self.phases_ft:
-                lb += phase_min
-                ub += phase_max
+            def active_vector_from_full(flat_list):
+                full = np.asarray(flat_list, dtype=np.float64)
+                active = [full[0:n_cycles]]
+                if self.frequencies_ft:
+                    active.append(full[n_cycles:2 * n_cycles])
+                if self.phases_ft:
+                    active.append(full[2 * n_cycles:3 * n_cycles])
+                return np.concatenate(active)
 
-        
-            
             def fitness_func_cpp(flat_list):
-                fitness_result = self.MultiAn_evaluateFitness(flat_list, False)
+                fitness_result = self.MultiAn_evaluateFitness(active_vector_from_full(flat_list), False)
                 return float(fitness_result[0]) if isinstance(fitness_result, tuple) else float(fitness_result)
 
 
@@ -826,20 +824,35 @@ class MultiperiodMixin:
             else:
 
                 print('run_genetic_algorithm')
-        
-                best_flat = run_genetic_algorithm(
-                    fitness_func_cpp,
-                    population_n,
-                    CXPB,
-                    MUTPB,
-                    NGEN,
-                    gene_length,
-                    lb,
-                    ub,
-                    discretization_steps,  
-                    initial_vector,
-                    n_cycles 
-                )
+
+                try:
+                    best_flat = run_genetic_algorithm(
+                        fitness_func_cpp,
+                        population_n,
+                        CXPB,
+                        MUTPB,
+                        NGEN,
+                        gene_length,
+                        lb,
+                        ub,
+                        discretization_steps,
+                        initial_vector,
+                        n_cycles
+                    )
+                except TypeError as exc:
+                    if "incompatible function arguments" not in str(exc):
+                        raise
+                    best_flat = run_genetic_algorithm(
+                        fitness_func_cpp,
+                        population_n,
+                        CXPB,
+                        MUTPB,
+                        NGEN,
+                        gene_length,
+                        lb,
+                        ub,
+                        discretization_steps
+                    )
 
             
             n = len(self.MultiAn_dominant_cycles_df)
@@ -862,16 +875,7 @@ class MultiperiodMixin:
 
 
 
-            if self.frequencies_ft and self.phases_ft:
-                individual = np.concatenate([amp, freq, phase])
-            elif self.frequencies_ft:
-                individual = np.concatenate([amp, freq])
-            elif self.phases_ft:
-                individual = np.concatenate([amp, phase])
-            else:
-                individual = amp
-
-            
+            individual = active_vector_from_full(best_flat)
             self.MultiAn_dominant_cycles_df['best_fitness'] = self.MultiAn_evaluateFitness(individual, False)
 
 
@@ -1013,8 +1017,9 @@ class MultiperiodMixin:
 
 
 
-            # Re-evaluate the best point and store the resulting fitness.
-            best_fitness_value = objective(best)
+            # Re-evaluate the best point and store the resulting scalar loss.
+            best_evaluation = objective(best)
+            best_fitness_value = float(best_evaluation["loss"])
             self.MultiAn_dominant_cycles_df['best_fitness'] = best_fitness_value
 
             display(self.MultiAn_dominant_cycles_df)

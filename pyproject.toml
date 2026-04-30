@@ -47,5 +47,6 @@ dev = [
   "pytest"
 ]
 
-[tool.setuptools]
-packages = ["cyPredict"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cyPredict*"]
