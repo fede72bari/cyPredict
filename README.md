@@ -10,6 +10,7 @@ The code is currently being consolidated. The first rule of the cleanup is to pr
 - Current implementation module: `cyPredict/cypredict.py`
 - Planned cleanup: `sviluppi_programmati/cypredict_cleanup_refactor_plan.md`
 - Native dependency notes: `docs/native_dependencies.md`
+- Public API and config-object notes: `docs/public_api.md`
 - Native/custom dependencies are versioned under `native/` and loaded from local build output when available: `goertzel`, `cyfitness`, `cyGAopt`, `cyGAoptMultiCore`
 - Research notebooks and usage examples currently live outside this repository under `D:\Dropbox\TRADING\STUDIES DEVELOPMENT\CYCLES ANALYSIS`
 

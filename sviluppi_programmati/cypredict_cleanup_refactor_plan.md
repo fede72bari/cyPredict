@@ -306,6 +306,16 @@ Ridurre firme e ritorni senza rompere notebook e integrazioni operative.
 
 I notebook principali devono poter essere aggiornati con sostituzioni minime e tracciabili.
 
+### Stato aggiornato
+
+Milestone 3 chiusa come fase di transizione: la superficie legacy resta
+supportata, ma sono disponibili i config object in `cyPredict.config` e i metodi
+`analyze_and_plot_from_config` e `multiperiod_analysis_from_config`. Questi
+metodi espandono i config nelle firme legacy senza modificare la procedura di
+calcolo. La documentazione operativa e' in `docs/public_api.md`; i test di
+equivalenza della traduzione config -> kwargs legacy sono in
+`tests/test_config_objects.py`.
+
 ## Milestone 4 - Ritorni e oggetti risultato
 
 ### Scopo

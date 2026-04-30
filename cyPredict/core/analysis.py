@@ -22,6 +22,14 @@ from statsmodels.tsa.tsatools import detrend
 class AnalysisMixin:
     """Run the single-range Goertzel/detrending cycle analysis."""
 
+    def analyze_and_plot_from_config(self, config):
+        """Run ``analyze_and_plot`` from an ``AnalysisConfig`` object.
+
+        The method only expands structured configuration into the legacy
+        keyword signature, so existing calculation behavior is unchanged.
+        """
+        return self.analyze_and_plot(**config.to_legacy_kwargs())
+
     def analyze_and_plot(self,
                          data = None,
                          data_column_name = 'Close',

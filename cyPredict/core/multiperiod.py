@@ -34,6 +34,14 @@ require_native_abi(cyGAoptMultiCore, "cyGAoptMultiCore", REQUIRED_CYGAOPT_ABI_VE
 class MultiperiodMixin:
     """Run and refit multiple dominant-cycle period ranges."""
 
+    def multiperiod_analysis_from_config(self, config):
+        """Run ``multiperiod_analysis`` from a ``MultiPeriodAnalysisConfig``.
+
+        The method only expands structured configuration into the legacy
+        keyword signature, so existing calculation behavior is unchanged.
+        """
+        return self.multiperiod_analysis(**config.to_legacy_kwargs())
+
     def multiperiod_analysis(self,
                              data_column_name,
                              current_date,
