@@ -30,6 +30,12 @@ class AnalysisMixin:
         """
         return self.analyze_and_plot(**config.to_legacy_kwargs())
 
+    def analyze_and_plot_result(self, *args, **kwargs):
+        """Run ``analyze_and_plot`` and return an ``AnalysisResult`` object."""
+        from ..results import AnalysisResult
+
+        return AnalysisResult.from_legacy_tuple(self.analyze_and_plot(*args, **kwargs))
+
     def analyze_and_plot(self,
                          data = None,
                          data_column_name = 'Close',

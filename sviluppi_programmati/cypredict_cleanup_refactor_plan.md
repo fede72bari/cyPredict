@@ -367,6 +367,18 @@ Ritorni principali osservati:
 
 Ogni funzione pubblica ha ritorno documentato e stabile.
 
+### Stato aggiornato
+
+Milestone 4 chiusa come fase di transizione: i ritorni legacy non cambiano, ma
+sono disponibili `AnalysisResult`, `MultiPeriodResult` e `MinMaxAnalysisResult`
+in `cyPredict.results` e dal package root. I wrapper
+`analyze_and_plot_result`, `multiperiod_analysis_result`,
+`min_max_analysis_concatenated_dataframe_result` e
+`get_min_max_analysis_df_result` chiamano i metodi legacy e impacchettano il
+risultato. I test in `tests/test_result_objects.py` verificano la conversione
+da/a tuple o dataframe legacy, incluso il ramo di errore a sei valori di
+`multiperiod_analysis`.
+
 ## Milestone 5 - Logging centralizzato
 
 ### Scopo

@@ -1,6 +1,7 @@
-# Result Contracts - Initial Notes
+# Result Contracts
 
-Baseline inspected: `873ad825a4e4edbe4962b13362d56bcb68da5408`
+Current milestone status: Milestone 4 transitional result objects are
+available without changing legacy returns.
 
 ## Existing Tuple Returns
 
@@ -54,19 +55,76 @@ Returns one dataframe row combining:
 
 Returns the accumulated dataframe and writes it to CSV during processing.
 
-## Target Result Objects
+## Result Objects
 
-Suggested future result classes:
+Implemented result classes live in `cyPredict.results` and are re-exported
+from the package root:
 
 - `AnalysisResult`
 - `MultiPeriodResult`
 - `MinMaxAnalysisResult`
-- `ProjectionResult`
 
-Each should provide:
+Each provides named attributes, conversion back to the legacy return contract,
+and a compact `to_dict()` for worker/API-oriented code.
 
-- named attributes;
-- `as_legacy_tuple()` for notebook compatibility;
-- `to_dict()` for worker/API use;
-- metadata with code version, config hash, and warnings.
+### `AnalysisResult`
 
+Created by:
+
+```python
+result = cp.analyze_and_plot_result(...)
+```
+
+Legacy conversion:
+
+```python
+current_date, index_of_max_time_for_cd, original_data, signals_results, configuration = result.as_legacy_tuple()
+```
+
+### `MultiPeriodResult`
+
+Created by:
+
+```python
+result = cp.multiperiod_analysis_result(...)
+```
+
+Legacy conversion:
+
+```python
+(
+    elaborated_data_series,
+    signals_results_series,
+    composite_signal,
+    configurations_series,
+    bb_delta,
+    cdc_rsi,
+    index_of_max_time_for_cd,
+    scaled_signals,
+    best_fitness_value,
+) = result.as_legacy_tuple()
+```
+
+The object also preserves the shorter six-value failure tuple emitted by a
+legacy early-return path, so wrapper use does not hide that behavior.
+
+### `MinMaxAnalysisResult`
+
+Created by:
+
+```python
+result = cp.min_max_analysis_concatenated_dataframe_result(...)
+result = cp.get_min_max_analysis_df_result(...)
+```
+
+Legacy conversion:
+
+```python
+dataframe = result.as_legacy_value()
+```
+
+## Still Deferred
+
+- `ProjectionResult` remains a future GammaSignalForge-facing object.
+- Code-version metadata and config hashes are deferred until config/result
+  contracts are both stable.

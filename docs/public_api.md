@@ -96,3 +96,16 @@ Historical names with typos, such as `cicles`, `weigth`, `weigthed`, and
 `gloabl`, are kept where changing them would break notebooks or stored output.
 New config objects use clearer grouping but still translate to the legacy
 keyword names required by the existing implementation.
+
+## Result Objects
+
+The legacy return tuples/dataframes are unchanged. Transitional result-object
+wrappers are available when callers want named fields:
+
+- `cp.analyze_and_plot_result(...)` -> `AnalysisResult`
+- `cp.multiperiod_analysis_result(...)` -> `MultiPeriodResult`
+- `cp.min_max_analysis_concatenated_dataframe_result(...)` -> `MinMaxAnalysisResult`
+- `cp.get_min_max_analysis_df_result(...)` -> `MinMaxAnalysisResult`
+
+Each result object can be converted back to the legacy contract with
+`as_legacy_tuple()` or, for min/max dataframe workflows, `as_legacy_value()`.

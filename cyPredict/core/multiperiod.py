@@ -42,6 +42,12 @@ class MultiperiodMixin:
         """
         return self.multiperiod_analysis(**config.to_legacy_kwargs())
 
+    def multiperiod_analysis_result(self, *args, **kwargs):
+        """Run ``multiperiod_analysis`` and return a ``MultiPeriodResult``."""
+        from ..results import MultiPeriodResult
+
+        return MultiPeriodResult.from_legacy_tuple(self.multiperiod_analysis(*args, **kwargs))
+
     def multiperiod_analysis(self,
                              data_column_name,
                              current_date,

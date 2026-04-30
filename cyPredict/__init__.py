@@ -16,13 +16,17 @@ from .config import (
     ProjectionConfig,
 )
 from .cypredict import cyPredict
+from .results import AnalysisResult, MinMaxAnalysisResult, MultiPeriodResult
 
 __all__ = [
     "AnalysisConfig",
+    "AnalysisResult",
     "DataConfig",
     "DetrendConfig",
     "GoertzelConfig",
+    "MinMaxAnalysisResult",
     "MultiPeriodAnalysisConfig",
+    "MultiPeriodResult",
     "OptimizationConfig",
     "OutputConfig",
     "ProjectionConfig",

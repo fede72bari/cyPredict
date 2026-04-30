@@ -10,6 +10,22 @@ from scipy.signal import argrelextrema, savgol_filter
 class MinMaxMixin:
     """Build wide min/max analysis datasets used by backtests and notebooks."""
 
+    def min_max_analysis_concatenated_dataframe_result(self, *args, **kwargs):
+        """Run min/max concatenation and return a ``MinMaxAnalysisResult``."""
+        from ..results import MinMaxAnalysisResult
+
+        return MinMaxAnalysisResult.from_legacy_value(
+            self.min_max_analysis_concatenated_dataframe(*args, **kwargs)
+        )
+
+    def get_min_max_analysis_df_result(self, *args, **kwargs):
+        """Run incremental min/max analysis and return a result object."""
+        from ..results import MinMaxAnalysisResult
+
+        return MinMaxAnalysisResult.from_legacy_value(
+            self.get_min_max_analysis_df(*args, **kwargs)
+        )
+
     def min_max_analysis(
         self,
         data,

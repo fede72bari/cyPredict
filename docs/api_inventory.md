@@ -10,8 +10,8 @@ This inventory is intentionally descriptive. It does not authorize removals by i
 | Function | Observed use | Current role | Cleanup action |
 | --- | --- | --- | --- |
 | `cyPredict(...)` | frequent | data loading and state initialization | keep public; document data source modes |
-| `analyze_and_plot(...)` | frequent | single period/range dominant-cycle analysis | keep public; config bridge available via `analyze_and_plot_from_config` |
-| `multiperiod_analysis(...)` | frequent | multirange analysis and signal reconstruction | keep public; config bridge available via `multiperiod_analysis_from_config` |
+| `analyze_and_plot(...)` | frequent | single period/range dominant-cycle analysis | keep public; config and result bridges available |
+| `multiperiod_analysis(...)` | frequent | multirange analysis and signal reconstruction | keep public; config and result bridges available |
 | `get_most_updated_optimization_pars(...)` | frequent | choose most relevant optimization parameters by date | keep public; document dataframe contract |
 | `get_min_max_analysis_df(...)` | frequent | incremental min/max analysis dataframe/CSV workflow | keep public; make worker-safe and idempotent |
 | `min_max_analysis_concatenated_dataframe(...)` | indirect/frequent | row-level feature extraction around CDC projections | keep public or semi-public during transition |
@@ -84,3 +84,4 @@ parameters are listed in `docs/parameter_matrix.md`.
 - Long public signatures now have transitional config objects; legacy signatures stay supported for notebooks.
 - Notebook compatibility matters; removed legacy parameters are tracked in `docs/parameter_matrix.md` and guarded by tests.
 - Structured logging utilities are wired into the main analysis paths. Legacy `time_tracking` and `print_activity_remarks` flags are removed.
+- Result wrappers are additive; legacy tuple/dataframe returns are unchanged.
