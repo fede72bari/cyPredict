@@ -18,7 +18,11 @@ class ReconstructionMixin:
             Amplitude value for each dominant-cycle row.
         MultiAn_dominant_cycles_df : pandas.DataFrame
             Rows containing at least ``peak_periods``, ``peak_frequencies``,
-            ``peak_phases`` and ``start_rebuilt_signal_index``.
+            ``peak_phases`` and ``start_rebuilt_signal_index``.  When
+            optimizer output columns ``best_frequencies`` and/or
+            ``best_phases`` are present and populated, they are used for the
+            reconstructed component signal instead of the original Goertzel
+            peak values.
         df_indexes_list : sequence
             Index used for the returned dataframe.
         composite_signal_column_name : str
@@ -42,7 +46,15 @@ class ReconstructionMixin:
             remanant_length = np.int64(max_length_series - row['start_rebuilt_signal_index'])
             time = np.linspace(0, remanant_length, remanant_length, endpoint=False)
 
-            composite_signal.iloc[int(row['start_rebuilt_signal_index']):, composite_signal.columns.get_loc(new_column_name)] = amplitudes[index] * np.sin(2 * np.pi * row['peak_frequencies'] * time + row['peak_phases'])
+            frequency = row['peak_frequencies']
+            if 'best_frequencies' in MultiAn_dominant_cycles_df.columns and pd.notna(row['best_frequencies']):
+                frequency = row['best_frequencies']
+
+            phase = row['peak_phases']
+            if 'best_phases' in MultiAn_dominant_cycles_df.columns and pd.notna(row['best_phases']):
+                phase = row['best_phases']
+
+            composite_signal.iloc[int(row['start_rebuilt_signal_index']):, composite_signal.columns.get_loc(new_column_name)] = amplitudes[index] * np.sin(2 * np.pi * frequency * time + phase)
             composite_signal[composite_signal_column_name] += composite_signal[new_column_name]
 
         return composite_signal
