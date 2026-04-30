@@ -10,6 +10,7 @@ The code is currently being consolidated. The first rule of the cleanup is to pr
 - Current implementation module: `cyPredict/cypredict.py`
 - Planned cleanup: `sviluppi_programmati/cypredict_cleanup_refactor_plan.md`
 - Native dependency notes: `docs/native_dependencies.md`
+- API reference: `docs/api_reference.md`
 - Public API and config-object notes: `docs/public_api.md`
 - Result object contracts: `docs/result_contracts.md`
 - Native/custom dependencies are versioned under `native/` and loaded from local build output when available: `goertzel`, `cyfitness`, `cyGAopt`, `cyGAoptMultiCore`

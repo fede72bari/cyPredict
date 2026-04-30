@@ -37,12 +37,14 @@ VALID_CATEGORIES = {
 
 
 def _safe_token(value: Any, fallback: str) -> str:
+    """Return a filesystem-safe token for structured log filenames."""
     text = str(value or fallback)
     text = re.sub(r"[^A-Za-z0-9_.=-]+", "_", text).strip("_")
     return text or fallback
 
 
 def _json_safe(value: Any) -> Any:
+    """Convert common Python objects to JSON-serializable values."""
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     if isinstance(value, Path):
@@ -54,6 +56,13 @@ def _json_safe(value: Any) -> Any:
 
 @dataclass(frozen=True)
 class LogEvent:
+    """One structured cyPredict log event.
+
+    Attributes store both human-readable fields and machine-readable context.
+    ``to_console_line`` provides the compact notebook/console format, while
+    ``to_dict`` is used for JSONL persistence.
+    """
+
     timestamp: str
     run_id: str
     level: str
@@ -66,11 +75,13 @@ class LogEvent:
     context: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe dictionary representation of the event."""
         data = asdict(self)
         data["context"] = {str(key): _json_safe(value) for key, value in self.context.items()}
         return data
 
     def to_console_line(self) -> str:
+        """Render the event as a single structured console line."""
         parts = [
             self.timestamp,
             self.level,
@@ -100,6 +111,23 @@ class CyPredictLogger:
         log_to_console: bool = True,
         log_to_file: bool = False,
     ) -> None:
+        """Create a structured logger for one analysis run.
+
+        Parameters
+        ----------
+        ticker, timeframe : str, optional
+            Context copied into each event and into generated filenames.
+        log_dir : str or Path, default "logs"
+            Directory used only when ``log_to_file`` is true.
+        run_id : str, optional
+            Stable run identifier. A short random id is generated when omitted.
+        min_level : {"DEBUG", "INFO", "WARNING", "ERROR"}, default "INFO"
+            Minimum level to emit.
+        log_to_console : bool, default True
+            Print formatted log lines to stdout.
+        log_to_file : bool, default False
+            Persist both text ``.log`` and machine-readable ``.jsonl`` files.
+        """
         self.ticker = ticker
         self.timeframe = timeframe
         self.run_id = run_id or uuid.uuid4().hex[:12]
@@ -126,13 +154,16 @@ class CyPredictLogger:
 
     @property
     def log_path(self) -> Path | None:
+        """Path to the text log file, if file logging is enabled."""
         return self._log_path
 
     @property
     def jsonl_path(self) -> Path | None:
+        """Path to the JSONL log file, if file logging is enabled."""
         return self._jsonl_path
 
     def is_enabled(self, level: str) -> bool:
+        """Return whether ``level`` passes the configured minimum level."""
         level_name = level.upper()
         if level_name not in LEVELS:
             raise ValueError(f"Unsupported log level: {level}")
@@ -147,6 +178,11 @@ class CyPredictLogger:
         function: str | None = None,
         **context: Any,
     ) -> LogEvent | None:
+        """Emit one structured event to configured destinations.
+
+        Returns ``None`` when the event is below ``min_level``; otherwise
+        returns the emitted ``LogEvent`` so tests and callers can inspect it.
+        """
         level_name = level.upper()
         category_name = category.lower()
 
@@ -183,17 +219,21 @@ class CyPredictLogger:
         return event
 
     def debug(self, message: str, *, function: str | None = None, **context: Any) -> LogEvent | None:
+        """Emit a DEBUG diagnostic event."""
         return self.emit(message, category="debug", level="DEBUG", function=function, **context)
 
     def info(self, message: str, *, function: str | None = None, **context: Any) -> LogEvent | None:
+        """Emit an INFO processing event."""
         return self.emit(message, category="processing", level="INFO", function=function, **context)
 
     def warning(self, message: str, *, function: str | None = None, **context: Any) -> LogEvent | None:
+        """Emit a WARNING event."""
         return self.emit(message, category="warning", level="WARNING", function=function, **context)
 
     def error(self, message: str, *, function: str | None = None, **context: Any) -> LogEvent | None:
+        """Emit an ERROR event."""
         return self.emit(message, category="error", level="ERROR", function=function, **context)
 
     def timing(self, message: str, *, function: str | None = None, **context: Any) -> LogEvent | None:
+        """Emit an INFO timing event."""
         return self.emit(message, category="timing", level="INFO", function=function, **context)
-

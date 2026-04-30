@@ -636,6 +636,14 @@ class MultiperiodMixin:
 
             
             def safe_segmented_mutation(individual, amp_low, amp_up, freq_low=None, freq_up=None, phase_low=None, phase_up=None, indpb=0.2):
+                """Mutate amplitude, frequency and phase sections independently.
+
+                The individual layout follows the active DEAP vector:
+                amplitudes are always present, frequency genes are present only
+                when frequency fine tuning is enabled, and phase genes are
+                present only when phase fine tuning is enabled. Each mutated
+                gene is snapped to the configured discretization grid.
+                """
                 n = len(amp_low)
                 levels = self.discretization_steps # 400
                 cursor = 0
@@ -837,6 +845,7 @@ class MultiperiodMixin:
             ub = amp_max.copy() + freq_max + phase_max
 
             def active_vector_from_full(flat_list):
+                """Drop inactive C++ genes before calling Python fitness."""
                 full = np.asarray(flat_list, dtype=np.float64)
                 active = [full[0:n_cycles]]
                 if self.frequencies_ft:
@@ -846,6 +855,7 @@ class MultiperiodMixin:
                 return np.concatenate(active)
 
             def fitness_func_cpp(flat_list):
+                """Evaluate a full C++ optimizer vector through Python fitness."""
                 fitness_result = self.MultiAn_evaluateFitness(active_vector_from_full(flat_list), False)
                 return float(fitness_result[0]) if isinstance(fitness_result, tuple) else float(fitness_result)
 
@@ -1012,6 +1022,7 @@ class MultiperiodMixin:
 
             # Hyperopt minimizes loss, so the objective returns the fitness loss.
             def objective(params):
+                """Convert Hyperopt parameter dicts to the active fitness vector."""
                 individual = []
                 n_cycles = len(self.MultiAn_dominant_cycles_df)
             

@@ -25,12 +25,14 @@ class AnalysisResult:
 
     @classmethod
     def from_legacy_tuple(cls, result: tuple[Any, ...]) -> "AnalysisResult":
+        """Build an ``AnalysisResult`` from the five-value legacy tuple."""
         if len(result) != 5:
             raise ValueError(f"analyze_and_plot returned {len(result)} values; expected 5")
         ok = any(value is not None for value in result)
         return cls(*result, ok=ok)
 
     def as_legacy_tuple(self) -> tuple[Any, Any, Any, Any, Any]:
+        """Return the exact tuple shape produced by ``analyze_and_plot``."""
         return (
             self.current_date,
             self.index_of_max_time_for_cd,
@@ -40,6 +42,7 @@ class AnalysisResult:
         )
 
     def to_dict(self, include_data: bool = False) -> dict[str, Any]:
+        """Return metadata, optionally including large dataframe-like values."""
         payload = {
             "ok": self.ok,
             "current_date": self.current_date,
@@ -76,6 +79,7 @@ class MultiPeriodResult:
 
     @classmethod
     def from_legacy_tuple(cls, result: tuple[Any, ...]) -> "MultiPeriodResult":
+        """Build a result object from the legacy six- or nine-value tuple."""
         if len(result) not in (6, 9):
             raise ValueError(f"multiperiod_analysis returned {len(result)} values; expected 6 or 9")
         values = tuple(result) + (None,) * (9 - len(result))
@@ -83,6 +87,7 @@ class MultiPeriodResult:
         return cls(*values[:9], ok=ok, legacy_length=len(result))
 
     def as_legacy_tuple(self) -> tuple[Any, ...]:
+        """Return the original six- or nine-value legacy tuple shape."""
         values = (
             self.elaborated_data_series,
             self.signals_results_series,
@@ -97,6 +102,7 @@ class MultiPeriodResult:
         return values[: self.legacy_length]
 
     def to_dict(self, include_data: bool = False) -> dict[str, Any]:
+        """Return metadata, optionally including large analysis outputs."""
         payload = {
             "ok": self.ok,
             "index_of_max_time_for_cd": self.index_of_max_time_for_cd,
@@ -129,15 +135,19 @@ class MinMaxAnalysisResult:
 
     @classmethod
     def from_legacy_value(cls, dataframe: Any) -> "MinMaxAnalysisResult":
+        """Wrap a legacy min/max dataframe return value."""
         return cls(dataframe=dataframe, ok=dataframe is not None)
 
     def as_legacy_value(self) -> Any:
+        """Return the raw dataframe value expected by legacy callers."""
         return self.dataframe
 
     def as_legacy_tuple(self) -> tuple[Any]:
+        """Return a one-value tuple containing the dataframe."""
         return (self.dataframe,)
 
     def to_dict(self, include_data: bool = False) -> dict[str, Any]:
+        """Return result metadata, optionally including the dataframe."""
         payload = {
             "ok": self.ok,
             "warnings": list(self.warnings),

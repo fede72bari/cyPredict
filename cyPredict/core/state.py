@@ -13,10 +13,14 @@ class StateMixin:
     """Initialize shared state for the legacy cycle-analysis engine."""
 
     class Drive(Enum):
+        """Legacy storage backend identifiers."""
+
         local = 1
         GoogleDrive = 2
 
     class financialDataSource(Enum):
+        """Legacy data-source identifiers used by older notebooks."""
+
         csv_file = 1
         yfinance = 2
 
@@ -167,6 +171,7 @@ class StateMixin:
         self.output_clearing = output_clearing
 
     def is_log_enabled(self, level):
+        """Return whether a structured log level would be emitted."""
         return self.logger.is_enabled(level)
 
     def configure_logging(self,
@@ -190,16 +195,21 @@ class StateMixin:
         return self.logger
 
     def log_debug(self, message, *, function=None, **context):
+        """Emit a DEBUG diagnostic event through the structured logger."""
         return self.logger.debug(message, function=function, **context)
 
     def log_info(self, message, *, function=None, **context):
+        """Emit an INFO processing event through the structured logger."""
         return self.logger.info(message, function=function, **context)
 
     def log_warning(self, message, *, function=None, **context):
+        """Emit a WARNING event through the structured logger."""
         return self.logger.warning(message, function=function, **context)
 
     def log_error(self, message, *, function=None, **context):
+        """Emit an ERROR event through the structured logger."""
         return self.logger.error(message, function=function, **context)
 
     def log_timing(self, message, *, function=None, **context):
+        """Emit an INFO timing event through the structured logger."""
         return self.logger.timing(message, function=function, **context)

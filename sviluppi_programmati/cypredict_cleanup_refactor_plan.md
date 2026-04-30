@@ -517,6 +517,17 @@ Per `period_related_rebuild_range`:
 
 Ogni funzione ha docstring non vuota; le funzioni pubbliche hanno esempi eseguibili.
 
+### Stato aggiornato
+
+Milestone 6 chiusa a livello di copertura documentale: tutte le classi e
+funzioni nei moduli mantenuti `cyPredict/core/*.py`, `cyPredict/config.py`,
+`cyPredict/results.py` e `cyPredict/logging_utils.py` hanno una docstring non
+vuota. Le funzioni pubbliche principali hanno esempi in `docs/public_api.md` e
+`docs/api_reference.md`; i dettagli di ritorni, parametri condizionali,
+logging e result object sono documentati nei file `docs/*`. Il test
+`tests/test_docstring_contracts.py` impedisce nuove funzioni/classi core prive
+di docstring.
+
 ## Milestone 7 - Rimozione codice morto e ridondanze
 
 ### Scopo

@@ -41,6 +41,21 @@ class OptimizationMixin:
 
     # Individual random definition function
     def genOpt_initializeIndividual(self):
+        """Create one legacy hyperparameter-optimization individual.
+
+        The gene layout is selected from ``self.detrend_type`` and
+        ``self.period_related_rebuild_range``. HP-filter runs include
+        ``hp_filter_lambda``; linear runs include
+        ``linear_filter_window_size_multiplier``. When
+        ``period_related_rebuild_range`` is false, the rebuild multiplier is
+        not part of the individual because it is not meaningful for that mode.
+
+        Returns
+        -------
+        list
+            Randomly sampled genes in the order expected by the legacy genetic
+            fitness functions.
+        """
         
         if(self.detrend_type == 'hp_filter'):
             
@@ -97,12 +112,41 @@ class OptimizationMixin:
 
 
     def discretized_uniform(self, low, up, levels=400):
+        """Sample a value from a uniform discrete grid.
+
+        Parameters
+        ----------
+        low, up : float
+            Inclusive range limits for the value to sample.
+        levels : int, default 400
+            Number of equally spaced values in the grid.
+
+        Returns
+        -------
+        float
+            One randomly selected value from the grid.
+        """
         step = (up - low) / (levels - 1)
         return low + step * random.randint(0, levels - 1)
 
 
 
     def MultiAn_initializeIndividual(self):
+        """Create one multiperiod optimization individual.
+
+        The vector always starts with one amplitude per dominant cycle.
+        Frequency genes are appended only when ``self.frequencies_ft`` is true;
+        phase genes are appended only when ``self.phases_ft`` is true. Disabled
+        sections stay fixed to the Goertzel values and are not represented in
+        the individual.
+
+        Returns
+        -------
+        list[float]
+            Gene vector ordered as
+            ``[amplitudes..., frequencies..., phases...]`` with optional
+            sections omitted according to the tuning flags.
+        """
         n = len(self.MultiAn_dominant_cycles_df)
         individual = []
     
@@ -203,6 +247,21 @@ class OptimizationMixin:
 
 
     def decode_individual(self, individual):
+        """Split a multiperiod gene vector into named sections.
+
+        Parameters
+        ----------
+        individual : sequence of float
+            Vector ordered like ``MultiAn_initializeIndividual`` output:
+            amplitudes first, optional frequencies second and optional phases
+            last.
+
+        Returns
+        -------
+        tuple
+            ``(amplitudes, (frequencies, phases))`` as NumPy arrays. Disabled
+            frequency or phase sections are returned as ``None``.
+        """
         n = len(self.MultiAn_dominant_cycles_df)
         cursor = 0
         
@@ -233,6 +292,33 @@ class OptimizationMixin:
                                freq_range_pct=0.10,
                                phase_range_pct=0.10,
                                maxeval=10000):
+        """Optimize multiperiod amplitudes and optional frequency/phase genes.
+
+        Parameters
+        ----------
+        optimize_frequencies : bool, default False
+            Append one frequency variable per cycle, bounded around
+            ``peak_frequencies`` by ``freq_range_pct``. When false,
+            frequencies remain fixed outside this optimizer.
+        optimize_phases : bool, default False
+            Append one phase variable per cycle, bounded around ``peak_phases``
+            by ``phase_range_pct * 2*pi``. When false, phases remain fixed.
+        freq_range_pct : float, default 0.10
+            Relative frequency search half-width. Ignored unless
+            ``optimize_frequencies`` is true.
+        phase_range_pct : float, default 0.10
+            Phase search half-width expressed as a fraction of ``2*pi``.
+            Ignored unless ``optimize_phases`` is true.
+        maxeval : int, default 10000
+            Maximum number of NLopt objective evaluations.
+
+        Returns
+        -------
+        tuple
+            ``(best_x, best_fitness)`` where ``best_x`` uses the same section
+            ordering decoded by ``decode_individual`` and ``best_fitness`` is
+            the final loss.
+        """
     
         import nlopt
         import numpy as np
@@ -296,6 +382,7 @@ class OptimizationMixin:
                 x0[i] = ub[i] - EPSILON
 
         def loss(x, grad):
+            """Return the scalar loss expected by NLopt."""
             result = self.MultiAn_evaluateFitness(x)
             # Se è una tupla con un solo elemento, estrai il valore
             if isinstance(result, tuple):
@@ -332,6 +419,28 @@ class OptimizationMixin:
 
     
     def MultiAn_evaluateFitness_py(self, individual, return_list_type = True):
+        """Evaluate multiperiod reconstruction fitness in pure Python.
+
+        This reference path rebuilds each dominant cycle from its Goertzel
+        start index, optionally keeps only the recent period-related portion,
+        sums the components and compares the composite with
+        ``self.MultiAn_reference_detrended_data``.
+
+        Parameters
+        ----------
+        individual : sequence of float
+            Amplitude vector with one value per row in
+            ``self.MultiAn_dominant_cycles_df``. This pure-Python path does
+            not consume optimized frequency or phase sections.
+        return_list_type : bool, default True
+            Return ``(fitness,)`` for DEAP compatibility when true, otherwise
+            return the scalar loss.
+
+        Returns
+        -------
+        tuple[float] or float
+            Mean-squared-error style fitness value in the requested shape.
+        """
 
         scaler = self.scaler
 
@@ -416,6 +525,22 @@ class OptimizationMixin:
 
     # Fitness function
     def genOpt_evaluateMSEFitness(self, individual):
+        """Evaluate one hyperparameter individual with correlation/MSE loss.
+
+        Parameters
+        ----------
+        individual : sequence
+            Gene vector emitted by ``genOpt_initializeIndividual``. The exact
+            layout depends on ``self.detrend_type`` and
+            ``self.period_related_rebuild_range``; inactive mode-specific
+            parameters are not present.
+
+        Returns
+        -------
+        tuple[float]
+            One-element DEAP-compatible loss tuple. Constraint violations and
+            calculation errors return ``(1e9,)``.
+        """
 
         data = self.data
         last_date = self.genOpt_last_date
@@ -537,6 +662,23 @@ class OptimizationMixin:
 
     # Fitness function
     def genOpt_evaluateFitness(self, individual):
+        """Evaluate one hyperparameter individual with trading metrics.
+
+        Parameters
+        ----------
+        individual : sequence
+            Legacy five-gene HP-filter vector:
+            ``num_samples``, ``final_kept_n_dominant_circles``, ``min_period``,
+            ``max_period`` and ``hp_filter_lambda``.
+
+        Returns
+        -------
+        tuple
+            Nine DEAP fitness components: value sum, max loss, max cumulative
+            loss, profit sum, profit count, loss sum, loss count,
+            profit-count ratio and profit/loss ratio. Constraint violations
+            return the historical penalty tuple.
+        """
 
         data = self.data
         last_date = self.genOpt_last_date

@@ -268,6 +268,7 @@ class PlottingMixin:
         min_datetimes = x[min_indices]
 
         def pick_extrema_near_target(datetimes, target_index, count_after=2, count_before=1):
+            """Select extrema immediately before and after the current date."""
             target_dt = x[target_index]
             dt_series = pd.Series(datetimes)
             after = dt_series[dt_series > target_dt].sort_values().head(count_after)

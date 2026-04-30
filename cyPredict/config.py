@@ -24,6 +24,7 @@ class DataConfig:
     data_storage_path: str = "\\cyPredict\\"
 
     def to_constructor_kwargs(self) -> dict[str, Any]:
+        """Return keyword arguments accepted by ``cyPredict.__init__``."""
         return {
             "data_source": self.data_source,
             "data_filename": self.data_filename,
@@ -49,6 +50,7 @@ class DetrendConfig:
     linear_filter_window_size_multiplier: float = 1
 
     def to_analysis_kwargs(self) -> dict[str, Any]:
+        """Return detrending keywords for ``analyze_and_plot``."""
         return {
             "detrend_type": self.detrend_type,
             "detrend_window": self.detrend_window,
@@ -60,6 +62,7 @@ class DetrendConfig:
         }
 
     def to_multiperiod_kwargs(self) -> dict[str, Any]:
+        """Return detrending keywords for ``multiperiod_analysis``."""
         return {
             "detrend_type": self.detrend_type,
             "cut_to_date_before_detrending": self.cut_to_date_before_detrending,
@@ -84,6 +87,7 @@ class GoertzelConfig:
     kaiser_beta: float = 5
 
     def to_analysis_kwargs(self) -> dict[str, Any]:
+        """Return Goertzel/spectrum keywords for ``analyze_and_plot``."""
         return {
             "transform_precision": self.transform_precision,
             "final_kept_n_dominant_circles": self.final_kept_n_dominant_circles,
@@ -98,6 +102,7 @@ class GoertzelConfig:
         }
 
     def to_multiperiod_kwargs(self) -> dict[str, Any]:
+        """Return Goertzel keywords used by ``multiperiod_analysis``."""
         return {
             "windowing": self.windowing,
             "kaiser_beta": self.kaiser_beta,
@@ -125,6 +130,7 @@ class OptimizationConfig:
     random_seed: int | None = None
 
     def to_multiperiod_kwargs(self) -> dict[str, Any]:
+        """Return optimization keywords for ``multiperiod_analysis``."""
         return {
             "population_n": self.population_n,
             "CXPB": self.CXPB,
@@ -155,6 +161,7 @@ class ProjectionConfig:
     period_related_rebuild_multiplier: float = 2.5
 
     def to_multiperiod_kwargs(self) -> dict[str, Any]:
+        """Return projection/windowing keywords for ``multiperiod_analysis``."""
         return {
             "best_fit_start_back_period": self.best_fit_start_back_period,
             "reference_detrended_data": self.reference_detrended_data,
@@ -180,6 +187,7 @@ class OutputConfig:
     log_run_id: str | None = None
 
     def to_analysis_kwargs(self) -> dict[str, Any]:
+        """Return output and chart keywords for ``analyze_and_plot``."""
         return {
             "centered_averages": self.centered_averages,
             "other_correlations": self.other_correlations,
@@ -189,6 +197,7 @@ class OutputConfig:
         }
 
     def to_multiperiod_kwargs(self) -> dict[str, Any]:
+        """Return output and logging keywords for ``multiperiod_analysis``."""
         return {
             "show_charts": self.show_charts,
             "log_level": self.log_level,
@@ -213,6 +222,7 @@ class AnalysisConfig:
     output: OutputConfig = field(default_factory=OutputConfig)
 
     def to_legacy_kwargs(self) -> dict[str, Any]:
+        """Flatten the grouped config into ``analyze_and_plot`` keywords."""
         kwargs = {
             "data": self.data,
             "data_column_name": self.data_column_name,
@@ -240,6 +250,7 @@ class MultiPeriodAnalysisConfig:
     output: OutputConfig = field(default_factory=OutputConfig)
 
     def to_legacy_kwargs(self) -> dict[str, Any]:
+        """Flatten the grouped config into ``multiperiod_analysis`` keywords."""
         kwargs = {
             "data_column_name": self.data_column_name,
             "current_date": self.current_date,
