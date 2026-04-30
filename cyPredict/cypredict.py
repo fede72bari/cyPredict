@@ -107,6 +107,7 @@ from .core.minmax import MinMaxMixin
 from .core.multiperiod import MultiperiodMixin
 from .core.optimization import OptimizationMixin
 from .core.persistence import PersistenceMixin
+from .core.plotting import PlottingMixin
 from .core.reconstruction import ReconstructionMixin
 from .core.scoring import ScoringMixin
 from .core.spectral import SpectralMixin
@@ -128,6 +129,7 @@ class cyPredict(
     MultiperiodMixin,
     OptimizationMixin,
     PersistenceMixin,
+    PlottingMixin,
     ReconstructionMixin,
     ScoringMixin,
 ):

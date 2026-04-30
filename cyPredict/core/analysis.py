@@ -8,15 +8,13 @@ from goertzel import goertzel_DFT, goertzel_general_shortened
 from IPython.display import display
 import numpy as np
 import pandas as pd
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
 from scipy.integrate import simpson
 from scipy.signal import argrelextrema, argrelmax, argrelmin, find_peaks, savgol_filter
 from scipy.signal.windows import kaiser, tukey
 from scipy.spatial.distance import cdist, euclidean
 from scipy.stats import kendalltau, pearsonr, spearmanr
 from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import StandardScaler
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.tsatools import detrend
 
@@ -1011,78 +1009,13 @@ class AnalysisMixin:
 
         if(show_charts == True):
 
-            # Spectrum chart.
-            basic_rows_n = 2
-
-            # Plot scaled peak amplitudes across detected periods.
-            spectrum_trace = go.Scatter(x=frequency_range, y=harmonics_amplitudes, mode='lines', name='Goetzel DFT Spectrum')
-            fig_spectrum = go.Figure(spectrum_trace)
-            fig_spectrum.update_layout(title="Frequency Spectrum", xaxis=dict(title="Frequency"), yaxis=dict(title="Magnitude"))
-
-            fig_spectrum.show()
-
-
-            # Price, detrended signal and dominant-cycle reconstruction.
-            fig = make_subplots(rows=basic_rows_n, cols=1, shared_xaxes=True, vertical_spacing=0.05, subplot_titles=("Original Data", "Detrended Data", "Dominant Circles Signal", "Centered Averages Delta"))
-
-
-            fig.add_trace(go.Scatter(x=original_data.index,
-                                      y=original_data[data_column_name],
-                                      mode="lines",
-                                      name="Original data"),
-                        row=1,
-                        col=1)
-
-            # Mark the analysis anchor date.
-            fig.add_shape(
-                type='line',
-                x0=index_of_max_time_for_cd,
-                x1=index_of_max_time_for_cd,
-                y0=original_data[data_column_name].min(),
-                y1=original_data[data_column_name].max(),
-                line=dict(color='purple', width=1),
-                row=1, col=1
+            self.plot_single_range_analysis_charts(
+                frequency_range=frequency_range,
+                harmonics_amplitudes=harmonics_amplitudes,
+                original_data=original_data,
+                data_column_name=data_column_name,
+                index_of_max_time_for_cd=index_of_max_time_for_cd,
             )
-            
-            # Normalize the composite signal for visual comparison.
-            scaler = MinMaxScaler(feature_range=(-1, 1))
-            normalized_detrended = scaler.fit_transform(original_data['detrended'].values.reshape(-1, 1)).flatten()
-            normalized_composite_circles = scaler.fit_transform(original_data['composite_dominant_circles_signal'].values.reshape(-1, 1)).flatten()
-
-            self.log_debug(
-                "Chart data last valid indexes",
-                function="analyze_and_plot",
-                original_last_valid_index=original_data[data_column_name].last_valid_index(),
-                detrended_last_valid_index=original_data['detrended'].last_valid_index(),
-                cdc_last_valid_index=original_data['composite_dominant_circles_signal'].last_valid_index(),
-            )
-
-            fig.add_trace(go.Scatter(x=original_data.index, y=normalized_detrended, mode="lines", name="Detrended Close"), row=2, col=1)
-            fig.add_trace(go.Scatter(x=original_data.index, y=normalized_composite_circles, mode="lines", name="Dominant Circle Signal"), row=2, col=1)
-
-
-
-
-
-            # Mark the analysis anchor date on the reconstruction subplot.
-            fig.add_shape(
-                type='line',
-                x0=index_of_max_time_for_cd,
-                x1=index_of_max_time_for_cd,
-                y0=-1,
-                y1=+1,
-                line=dict(color='purple', width=1),
-                row=2, col=1
-            )
-
-
-            fig.update_layout(title="Goertzel Dominant Cyrcles Analysis", height=800)
-
-
-            fig.update_xaxes(type="category")
-
-            # Display the diagnostic subplot figure.
-            fig.show()
 
 
 

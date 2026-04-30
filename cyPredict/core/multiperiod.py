@@ -9,13 +9,9 @@ from hyperopt.pyll import scope
 from IPython.display import display
 import numpy as np
 import pandas as pd
-import plotly.graph_objs as go
-from plotly.offline import plot
-from plotly.subplots import make_subplots
-from scipy.integrate import simpson
-from scipy.signal import argrelextrema, find_peaks, savgol_filter
+from scipy.signal import savgol_filter
 from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 from ..native_imports import (
     REQUIRED_CYGAOPT_ABI_VERSION,
@@ -269,7 +265,7 @@ class MultiperiodMixin:
         
             valid_times = original_data.index[original_data.index <= current_date]
             if len(valid_times) == 0:
-                raise ValueError("⚠️ Nessun dato disponibile prima di current_date nel dataset.")
+                raise ValueError("Nessun dato disponibile prima di current_date nel dataset.")
             
             last_valid_time = valid_times.max()
             idx_max_time = original_data.index.get_indexer([last_valid_time])[0]
@@ -998,7 +994,7 @@ class MultiperiodMixin:
 
         elif(opt_algo_type ==  'tpe' or opt_algo_type ==  'atpe'):
 
-            from hyperopt import STATUS_OK  # può anche stare fuori dalla funzione una volta sola
+            from hyperopt import STATUS_OK  # puo anche stare fuori dalla funzione una volta sola
 
             # Hyperopt minimizes loss, so the objective returns the fitness loss.
             def objective(params):
@@ -1223,311 +1219,19 @@ class MultiperiodMixin:
 
         if(show_charts == True):
 
-            # Original data, detrended, dominant circles signal, averages delta
-            
-            
-            fig = make_subplots(rows=3,
-                                cols=1,
-                                shared_xaxes=True,
-                                vertical_spacing=0.03,
-                                subplot_titles=("Original Data - " + 
-                                                self.ticker + " " + 
-                                                data_column_name + 
-                                                " Price",
-                                                "Composite Domaninant Cycles Signal",
-                                                "Cycles Alignment Indicators",
-                                ))
-            
-
-
-            fig.add_trace(go.Scatter(x=reduced_data .index,
-                                     y=reduced_data [data_column_name],
-                                     mode="lines",
-                                     name="Original data"),
-                          row=1,
-                          col=1)
-
-            missing_values = composite_signal['composite_signal'].isnull().any()
-
-            if missing_values:
-                self.log_warning("Missing values detected in composite signal", function="multiperiod_analysis")
-                
-
-            fig.add_trace(go.Scatter(x=elaborated_data_series[max_length_series_index].index,
-                                    y= scaled_composite_signal,
-                                    mode="lines",
-                                    name="Composite Domaninant Cycles Signal GA Refactored"),
-                          row=2, col=1)
-
-
-            fig.add_trace(go.Scatter(x=elaborated_data_series[max_length_series_index].index,
-                                    y = scaled_goertzel_composite_signal,
-                                    mode="lines",
-                                    name="Composite Domaninant Cycles Signal Goertzel Refactored"),
-                          row=2, col=1)
-
-            fig.add_trace(go.Scatter(x=elaborated_data_series[max_length_series_index].index,
-                                    y= scaled_detrended,
-                                    mode="lines",
-                                    name="Detrended Signal (max lambda, minimal detrended)"),
-                          row=2, col=1)
-
-
-
-            fig.add_trace(go.Scatter(x=elaborated_data_series[max_length_series_index].index,
-                                    y = scaled_alignmentsKPI, #  alignmentsKPI,
-                                    mode = "lines",
-                                    name = "Cycles Alignment Indicator"),
-                          row=3, col=1)
-
-
-            fig.add_trace(go.Scatter(x=elaborated_data_series[max_length_series_index].index,
-                                     y = scaled_weigthed_alignmentsKPI, # weigthed_alignmentsKPI,
-                                     mode="lines",
-                                     name="Weigthed Cycles Alignment Indicator",
-                                     yaxis="y2"),
-                          row=3, col=1)
- 
-            
-            fig.add_vline(
-                x=index_of_max_time_for_cd,
-                line=dict(color="red", dash="dot"),
-                name="Current Date",
-                row=1, col=1
+            self.plot_multiperiod_analysis_charts(
+                reduced_data=reduced_data,
+                data_column_name=data_column_name,
+                composite_signal=composite_signal,
+                elaborated_data_series=elaborated_data_series,
+                max_length_series_index=max_length_series_index,
+                scaled_composite_signal=scaled_composite_signal,
+                scaled_goertzel_composite_signal=scaled_goertzel_composite_signal,
+                scaled_detrended=scaled_detrended,
+                scaled_alignmentsKPI=scaled_alignmentsKPI,
+                scaled_weigthed_alignmentsKPI=scaled_weigthed_alignmentsKPI,
+                index_of_max_time_for_cd=index_of_max_time_for_cd,
             )
-            
-            fig.add_vline(
-                x=index_of_max_time_for_cd,
-                line=dict(color="red", dash="dot"),
-                name="Current Date",
-                row=2, col=1
-            )
-            
-            fig.add_vline(
-                x=index_of_max_time_for_cd,
-                line=dict(color="red", dash="dot"),
-                name="Current Date",
-                row=3, col=1
-            )
-            
-            # Zoom iniziale centrato sulla current time
-            samples_visible_before = 80
-            samples_visible_after = 80
-
-            index_center = index_of_max_time_for_cd
-            start_range = max(0, index_center - samples_visible_before)
-            end_range = index_center + samples_visible_after
-
-            fig.update_xaxes(range=[start_range, end_range])
-            fig.update_xaxes(type="category")
-
-            
-            fig.update_layout(
-                title="Goertzel Dominant Cyrcles Analysis",
-                height=1000,
-                autosize=True,
-                margin=dict(l=40, r=40, t=240, b=40),  
-                legend=dict(
-                    orientation="h",
-                    yanchor="top",
-                    y=1.2,  
-                    xanchor="center",
-                    x=0.5
-                )
-            )
-            
-            fig.update_layout(
-                yaxis=dict(
-                    autorange=True,
-                    fixedrange=False
-                )
-            )
-
-            # Trova massimi e minimi locali
-            y = scaled_composite_signal
-            x = elaborated_data_series[max_length_series_index].index
-
-            max_indices = argrelextrema(y, np.greater)[0]
-            min_indices = argrelextrema(y, np.less)[0]
-            
-            # Converte gli indici in datetime
-            max_datetimes = x[max_indices]
-            min_datetimes = x[min_indices]
-            
-            # Filtra i 2 massimi/minimi successivi e 1 precedente
-            def pick_extrema_near_target(datetimes, target_index, count_after=2, count_before=1):
-                target_dt = x[target_index]
-                dt_series = pd.Series(datetimes)
-                after = dt_series[dt_series > target_dt].sort_values().head(count_after)
-                before = dt_series[dt_series <= target_dt].sort_values(ascending=False).head(count_before)
-                return before.tolist() + after.tolist()
-            
-            relevant_max_dt = pick_extrema_near_target(max_datetimes, index_of_max_time_for_cd)
-            relevant_min_dt = pick_extrema_near_target(min_datetimes, index_of_max_time_for_cd)
-            
-            # Annotazioni
-            used_points = []
-            for dt in relevant_max_dt:
-                y_val = scaled_composite_signal[x.get_loc(dt)]
-                count_same_y = sum(1 for xd, yd in used_points if abs(yd - y_val) < 0.01 and abs((dt - xd).total_seconds()) < 60 * 60)
-                offset_y = 0.02 + count_same_y * 0.05     # 0.07, 0.12, ...
-                ay_val = -30 - count_same_y * 15          # visivamente separati
-
-                used_points.append((dt, y_val))
-            
-                fig.add_annotation(
-                    x=dt,
-                    y=y_val + offset_y,
-                    text=dt.strftime('%H:%M') if (pd.Series(reduced_data.index).diff().mode()[0] < pd.Timedelta("1D")) else dt.strftime('%Y-%m-%d'),
-                    showarrow=True,
-                    arrowhead=2,
-                    arrowside="end",
-                    arrowcolor="red",
-                    arrowwidth=2.5,
-                    ax=0,
-                    ay=ay_val,
-                    row=2,
-                    col=1
-                )            
-                        
-            # Annotazioni sui minimi (alternanza: vicino–lontano–vicino)
-            used_points = []
-            for dt in relevant_min_dt:
-                y_val = scaled_composite_signal[x.get_loc(dt)]
-                count_same_y = sum(1 for xd, yd in used_points if abs(yd - y_val) < 0.01 and abs((dt - xd).total_seconds()) < 60 * 60)
-                offset_y = 0.02 + count_same_y * 0.05     # 0.07, 0.12, ...
-                ay_val = 30 + count_same_y * 15          # visivamente separati
-                used_points.append((dt, y_val))
-            
-                fig.add_annotation(
-                    x=dt,
-                    y=y_val - offset_y,
-                    text=dt.strftime('%H:%M') if (pd.Series(reduced_data.index).diff().mode()[0] < pd.Timedelta("1D")) else dt.strftime('%Y-%m-%d'),
-                    showarrow=True,
-                    arrowhead=2,
-                    arrowside="end",
-                    arrowcolor="green",
-                    arrowwidth=2.5,
-                    ax=0,
-                    ay=ay_val,
-                    row=2,
-                    col=1
-                )
-
-
-
-            # Ottieni datetime visibili
-            # Datetime centrato
-            x_range_start = reduced_data .index[start_range]
-            x_range_end = reduced_data .index[min(end_range, len(reduced_data .index)-1)]
-            
-            # Trova i veri limiti di slicing con ricerca binaria
-            idx_start = reduced_data .index.searchsorted(x_range_start)
-            idx_end = reduced_data .index.searchsorted(x_range_end)
-            
-            visible_y = reduced_data .iloc[idx_start:idx_end][data_column_name].dropna()
-
-              
-            if not visible_y.empty:
-                ymin = visible_y.min()
-                ymax = visible_y.max()
-                range_y = ymax - ymin
-            
-            
-
-                fig.update_yaxes(
-                    range=[ymin - 10, ymax + 10],
-                    autorange=False,
-                    fixedrange=False,
-                    row=1,
-                    col=1
-                )
-            
-            # Ottieni i datetime visibili già calcolati sopra
-            visible_x_range = x[idx_start:idx_end]
-            visible_cdc = pd.Series(scaled_composite_signal, index=x).loc[visible_x_range].dropna()
-            
-            if not visible_cdc.empty:
-                ymin2 = visible_cdc.min()
-                ymax2 = visible_cdc.max()
-                range_y2 = ymax2 - ymin2
-            
-                fig.update_yaxes(
-                    range=[ymin2 - 20, ymax2 + 20],
-                    autorange=False,
-                    fixedrange=False,
-                    row=2,
-                    col=1
-                )
-
-            
-
-            # Unione ordinata dei picchi etichettati
-            all_extremes = sorted(relevant_min_dt + relevant_max_dt)
-            
-            # Crea bande colorate tra coppie alternate
-            for i in range(len(all_extremes) - 1):
-                t0 = all_extremes[i]
-                t1 = all_extremes[i + 1]
-                y0, y1 = 0, 1  # domain intero
-                
-                # Colori corretti: rosso dopo massimo, verde dopo minimo
-                color = "rgba(255, 0, 0, 0.2)" if t0 in relevant_max_dt else "rgba(0, 255, 0, 0.2)"
-                
-                for r in [1, 2, 3]:
-                    fig.add_vrect(
-                        x0=t0, x1=t1,
-                        fillcolor=color,
-                        opacity=0.2,
-                        line_width=0,
-                        row=r,
-                        col=1
-                    )
-            
-            # Intorno grigio ±3 o ±4
-            x_list = list(x)
-            all_tagged_extremes = sorted(relevant_min_dt + relevant_max_dt)
-            past_extremes = [dt for dt in all_tagged_extremes if dt <= x[index_of_max_time_for_cd]]
-            future_extremes = [dt for dt in all_tagged_extremes if dt > x[index_of_max_time_for_cd]]
-            
-            for i, dt in enumerate(past_extremes + future_extremes):
-                center_idx = x_list.index(dt)
-                if dt in past_extremes or i == len(past_extremes):  # primo futuro
-                    delta = 3
-                else:
-                    delta = 4
-            
-                start_idx = max(0, center_idx - delta)
-                end_idx = min(len(x_list) - 1, center_idx + delta)
-                t0 = x_list[start_idx]
-                t1 = x_list[end_idx]
-            
-                for r in [1, 2, 3]:
-                    fig.add_vrect(
-                        x0=t0, x1=t1,
-                        fillcolor="rgba(150,150,150,0.60)",
-                        opacity=0.25,
-                        line_width=0,
-                        row=r,
-                        col=1
-                    )
-
-
-            # Visualizza il secondo grafico con i subplot
-            fig.show()            
-            
-            plot(fig, filename=f'multirange analysis for {self.ticker}.html', auto_open=False)
-            
-            self.log_debug(
-                "Chart index diagnostics",
-                function="multiperiod_analysis",
-                reduced_index_type=type(reduced_data.index),
-                reduced_index_timezone=reduced_data.index.tz,
-                elaborated_index_type=type(elaborated_data_series[max_length_series_index].index),
-                elaborated_index_timezone=elaborated_data_series[max_length_series_index].index.tz,
-            )
-
-
 
 
         return elaborated_data_series, signals_results_series, composite_signal, configurations_series, None, None, index_of_max_time_for_cd, scaled_signals, best_fitness_value

@@ -577,6 +577,16 @@ cyPredict/
 6. Lasciare inizialmente `analyze_and_plot` e `multiperiod_analysis` in `core.py`.
 7. Solo dopo test, separare ottimizzazione e Goertzel.
 
+### Stato aggiornato
+
+La prima passata di modularizzazione e' completata tramite mixin sotto
+`cyPredict/core/`. Il plotting notebook e' stato spostato in
+`core/plotting.py` mantenendo l'output legacy dei notebook. La futura
+visualizzazione web di GammaSignalForge non e' implementata qui: dovra'
+riusare gli stessi concetti operativi, cioe' data corrente selezionata,
+separazione tra tratto passato e proiezione futura, e sovrapposizione al grafico
+a candele gestito dal livello applicativo web.
+
 ### Criterio di uscita
 
 L'import pubblico deve restare stabile:

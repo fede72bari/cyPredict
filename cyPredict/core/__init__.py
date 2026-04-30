@@ -11,6 +11,7 @@ from .minmax import MinMaxMixin
 from .multiperiod import MultiperiodMixin
 from .optimization import OptimizationMixin
 from .persistence import PersistenceMixin
+from .plotting import PlottingMixin
 from .reconstruction import ReconstructionMixin
 from .scoring import ScoringMixin
 from .spectral import SpectralMixin
@@ -28,6 +29,7 @@ __all__ = [
     "MultiperiodMixin",
     "OptimizationMixin",
     "PersistenceMixin",
+    "PlottingMixin",
     "ReconstructionMixin",
     "ScoringMixin",
     "SpectralMixin",
