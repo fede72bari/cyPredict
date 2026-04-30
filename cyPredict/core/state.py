@@ -169,6 +169,26 @@ class StateMixin:
     def is_log_enabled(self, level):
         return self.logger.is_enabled(level)
 
+    def configure_logging(self,
+                          *,
+                          log_level=None,
+                          log_to_console=None,
+                          log_to_file=None,
+                          log_dir=None,
+                          log_run_id=None):
+        """Reconfigure structured logging without rebuilding the analysis object."""
+
+        self.logger = CyPredictLogger(
+            ticker=self.state.get("ticker", self.logger.ticker),
+            timeframe=self.state.get("data_timeframe", self.logger.timeframe),
+            log_dir=log_dir if log_dir is not None else self.logger.log_dir,
+            run_id=log_run_id if log_run_id is not None else self.logger.run_id,
+            min_level=log_level if log_level is not None else self.logger.min_level,
+            log_to_console=log_to_console if log_to_console is not None else self.logger.log_to_console,
+            log_to_file=log_to_file if log_to_file is not None else self.logger.log_to_file,
+        )
+        return self.logger
+
     def log_debug(self, message, *, function=None, **context):
         return self.logger.debug(message, function=function, **context)
 

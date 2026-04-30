@@ -55,6 +55,11 @@ class MultiperiodMixin:
                              period_related_rebuild_multiplier = 2.5,
                              discretization_steps = 1000,
                              enabled_multiprocessing = True,
+                             log_level = None,
+                             log_to_console = None,
+                             log_to_file = None,
+                             log_dir = None,
+                             log_run_id = None,
                             ):
         """Run multiple period ranges and refit the combined cycle signal.
 
@@ -132,6 +137,10 @@ class MultiperiodMixin:
         enabled_multiprocessing : bool, default True
             Enables multiprocessing in supported optimizer branches. Nested
             callers often disable this to avoid double multiprocessing.
+        log_level, log_to_console, log_to_file, log_dir, log_run_id : optional
+            Structured logging override for this analysis call. These values
+            update the instance logger before the workflow starts. Leave them
+            unset to keep the constructor logging configuration.
         Returns
         -------
         tuple
@@ -159,6 +168,18 @@ class MultiperiodMixin:
         ...     show_charts=False,
         ...     enabled_multiprocessing=False)
         """
+
+        if any(
+            value is not None
+            for value in (log_level, log_to_console, log_to_file, log_dir, log_run_id)
+        ):
+            self.configure_logging(
+                log_level=log_level,
+                log_to_console=log_to_console,
+                log_to_file=log_to_file,
+                log_dir=log_dir,
+                log_run_id=log_run_id,
+            )
 
         self.log_info(
             "multiperiod_analysis started",
