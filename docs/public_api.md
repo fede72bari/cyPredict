@@ -6,6 +6,7 @@ configuration objects for gradual migration.
 ## Supported Legacy Surface
 
 - `cyPredict.cyPredict(...)`
+- `cypredict.CyPredict(...)`
 - `cyPredict.cyPredict(...).analyze_and_plot(...)`
 - `cyPredict.cyPredict(...).multiperiod_analysis(...)`
 - `cyPredict.cyPredict(...).get_min_max_analysis_df(...)`
@@ -13,6 +14,11 @@ configuration objects for gradual migration.
 
 Legacy signatures remain supported for the current notebooks. Removed
 parameters are listed in `docs/parameter_matrix.md`.
+
+The lowercase `cypredict` module is a compatibility facade for application code
+that prefers conventional package naming. It aliases `CyPredict` to the same
+class used by the historical `cyPredict` package; it does not introduce a
+second implementation.
 
 ## Structured Config Objects
 
@@ -34,7 +40,10 @@ arguments used by the legacy methods.
 ## Single-Range Example
 
 ```python
+from cypredict import CyPredict
 from cyPredict import AnalysisConfig, DetrendConfig, GoertzelConfig, OutputConfig
+
+cp = CyPredict(ticker="QQQ", data_start_date="2020-01-01", data_timeframe="1d")
 
 config = AnalysisConfig(
     data_column_name="Close",

@@ -1,5 +1,6 @@
 import json
 import importlib.util
+import shutil
 import sys
 from pathlib import Path
 
@@ -43,29 +44,37 @@ def test_logger_emits_labeled_event_without_console(capsys):
     assert event.context["rows"] == 10
 
 
-def test_logger_writes_log_and_jsonl(tmp_path):
+def test_logger_writes_log_and_jsonl():
+    log_dir = Path(__file__).resolve().parents[1] / "runtime_test_outputs" / "logging"
+    if log_dir.exists():
+        shutil.rmtree(log_dir)
+    log_dir.mkdir(parents=True)
+
     logger = CyPredictLogger(
         ticker="NQ=F",
         timeframe="15m",
         run_id="abc",
-        log_dir=tmp_path,
+        log_dir=log_dir,
         log_to_console=False,
         log_to_file=True,
     )
 
-    logger.timing("checkpoint", function="analysis", step=1)
+    try:
+        logger.timing("checkpoint", function="analysis", step=1)
 
-    assert logger.log_path is not None
-    assert logger.jsonl_path is not None
-    assert logger.log_path.exists()
-    assert logger.jsonl_path.exists()
-    assert "checkpoint" in logger.log_path.read_text(encoding="utf-8")
+        assert logger.log_path is not None
+        assert logger.jsonl_path is not None
+        assert logger.log_path.exists()
+        assert logger.jsonl_path.exists()
+        assert "checkpoint" in logger.log_path.read_text(encoding="utf-8")
 
-    row = json.loads(logger.jsonl_path.read_text(encoding="utf-8").strip())
-    assert row["run_id"] == "abc"
-    assert row["category"] == "timing"
-    assert row["function"] == "analysis"
-    assert row["context"]["step"] == 1
+        row = json.loads(logger.jsonl_path.read_text(encoding="utf-8").strip())
+        assert row["run_id"] == "abc"
+        assert row["category"] == "timing"
+        assert row["function"] == "analysis"
+        assert row["context"]["step"] == 1
+    finally:
+        shutil.rmtree(log_dir, ignore_errors=True)
 
 
 def test_logger_filters_below_min_level():

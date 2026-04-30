@@ -10,6 +10,7 @@ This inventory is intentionally descriptive. It does not authorize removals by i
 | Function | Observed use | Current role | Cleanup action |
 | --- | --- | --- | --- |
 | `cyPredict(...)` | frequent | data loading and state initialization | keep public; document data source modes |
+| `CyPredict(...)` from `cypredict` | new facade | lowercase import alias for application code | keep additive; same class as legacy `cyPredict` |
 | `analyze_and_plot(...)` | frequent | single period/range dominant-cycle analysis | keep public; config and result bridges available |
 | `multiperiod_analysis(...)` | frequent | multirange analysis and signal reconstruction | keep public; config and result bridges available |
 | `get_most_updated_optimization_pars(...)` | frequent | choose most relevant optimization parameters by date | keep public; document dataframe contract |
@@ -78,7 +79,7 @@ parameters are listed in `docs/parameter_matrix.md`.
 
 ## Immediate Observations
 
-- The original monolithic module has been split into core mixins, but the public class remains `cyPredict.cyPredict`.
+- The original monolithic module has been split into core mixins. The legacy public class remains `cyPredict.cyPredict`; `cypredict.CyPredict` is an additive lowercase alias.
 - Most core functions now have docstrings; exhaustive docstring cleanup remains Milestone 6.
 - Several return tuples contain placeholders or `None` values that should be documented before any contract change.
 - Long public signatures now have transitional config objects; legacy signatures stay supported for notebooks.

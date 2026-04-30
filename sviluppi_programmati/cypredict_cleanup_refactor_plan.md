@@ -643,13 +643,20 @@ cyPredict/
 
 ### Stato aggiornato
 
-La prima passata di modularizzazione e' completata tramite mixin sotto
-`cyPredict/core/`. Il plotting notebook e' stato spostato in
-`core/plotting.py` mantenendo l'output legacy dei notebook. La futura
-visualizzazione web di GammaSignalForge non e' implementata qui: dovra'
-riusare gli stessi concetti operativi, cioe' data corrente selezionata,
-separazione tra tratto passato e proiezione futura, e sovrapposizione al grafico
-a candele gestito dal livello applicativo web.
+Milestone 8 chiusa come modularizzazione compatibile: la logica e' spezzata in
+mixin sotto `cyPredict/core/`, il plotting notebook resta isolato in
+`core/plotting.py` mantenendo l'output legacy, e il file
+`cyPredict/cypredict.py` contiene solo composizione della classe e guardie
+native. Per l'import pubblico pulito e' stata aggiunta la facade lowercase
+`cypredict.py`, che espone `CyPredict` come alias della classe legacy senza
+spostare la cartella `cyPredict/` su Windows. La futura visualizzazione web di
+GammaSignalForge non e' implementata qui: dovra' riusare gli stessi concetti
+operativi, cioe' data corrente selezionata, separazione tra tratto passato e
+proiezione futura, e sovrapposizione al grafico a candele gestito dal livello
+applicativo web. Verifiche eseguite: parsing AST senza bytecode, esempio
+`examples/minimal_import.py`, import legacy/lowercase in entrambi gli ordini,
+editable install in `cyenv`, test mirati import/native/docstring, suite
+completa standard e golden test QQQ EOD con `CYPREDICT_RUN_GOLDEN=1`.
 
 ### Criterio di uscita
 

@@ -9,6 +9,7 @@ functions and classes keep non-empty docstrings.
 
 ```python
 from cyPredict import cyPredict
+from cypredict import CyPredict
 from cyPredict import AnalysisConfig, MultiPeriodAnalysisConfig
 from cyPredict import AnalysisResult, MultiPeriodResult, MinMaxAnalysisResult
 ```
@@ -31,6 +32,20 @@ Direct class construction is also supported:
 
 ```python
 cp = cyPredict(
+    data_source="yfinance",
+    ticker="QQQ",
+    data_start_date="2020-01-01",
+    data_end_date="2024-01-01",
+    data_timeframe="1d",
+)
+```
+
+Application code can use the lowercase facade:
+
+```python
+from cypredict import CyPredict
+
+cp = CyPredict(
     data_source="yfinance",
     ticker="QQQ",
     data_start_date="2020-01-01",

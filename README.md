@@ -43,6 +43,19 @@ model = cyPredict.cyPredict(
 )
 ```
 
+Application code can also use the lowercase facade:
+
+```python
+from cypredict import CyPredict
+
+model = CyPredict(
+    data_source="yfinance",
+    ticker="SPY",
+    data_start_date="2020-01-01",
+    data_timeframe="1d",
+)
+```
+
 For a no-download import check, run:
 
 ```powershell
