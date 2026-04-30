@@ -251,6 +251,15 @@ Analisi statica e controllo dei notebook hanno confermato la rimozione dei segue
 
 Nessun parametro viene rimosso senza una riga nella matrice e senza test passati.
 
+### Stato aggiornato
+
+Milestone 2 chiusa: `docs/api_inventory.md` descrive la superficie corrente
+per moduli/mixin, `docs/parameter_matrix.md` non contiene piu' candidati
+aperti e distingue i parametri rimossi da quelli mode-specific mantenuti. Il
+test `tests/test_api_parameter_contracts.py` blocca la reintroduzione dei
+parametri legacy rimossi e segnala qualunque parametro core non letto, con la
+sola eccezione ammessa del parametro `grad` richiesto dalla callback NLopt.
+
 ## Milestone 3 - Stabilizzazione dell'interfaccia pubblica
 
 ### Scopo

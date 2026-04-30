@@ -1,6 +1,7 @@
 # cyPredict API Inventory
 
-Baseline inspected: `873ad825a4e4edbe4962b13362d56bcb68da5408`
+Current audit status: Milestone 2 API/parameter inventory closed for the
+current modular layout under `cyPredict/core/`.
 
 This inventory is intentionally descriptive. It does not authorize removals by itself; every signature or return-contract change still requires a golden test comparison.
 
@@ -15,58 +16,71 @@ This inventory is intentionally descriptive. It does not authorize removals by i
 | `get_min_max_analysis_df(...)` | frequent | incremental min/max analysis dataframe/CSV workflow | keep public; make worker-safe and idempotent |
 | `min_max_analysis_concatenated_dataframe(...)` | indirect/frequent | row-level feature extraction around CDC projections | keep public or semi-public during transition |
 
-## Function Map
+## Current Function Map
 
-| Line | Function | Docstring | Return count | Initial classification |
-| ---: | --- | :---: | ---: | --- |
-| 125 | `__init__` | no | 0 | public |
-| 215 | `download_finance_data` | no | 0 | public/helper |
-| 275 | `hp_filter` | no | 3 | calculation |
-| 368 | `get_bartels_score` | no | 1 | calculation |
-| 426 | `jh_filter` | no | 1 | calculation |
-| 733 | `find_next_valid_datetime` | no | 2 | datetime helper |
-| 776 | `datetime_dateset_extend` | no | 1 | datetime helper |
-| 937 | `linear_detrend` | no | 1 | calculation |
-| 964 | `analyze_and_plot` | no | 7 | public |
-| 2058 | `multiperiod_analysis` | no | 6 | public |
-| 3452 | `debug_check_complex_col` | yes | 1 | debug |
-| 3470 | `debug_check_complex_values` | yes | 0 | debug |
-| 3477 | `get_goertzel_amplitudes` | no | 1 | helper |
-| 3482 | `cicles_composite_signals` | no | 1 | calculation |
-| 3511 | `indict_MACD_SGMACD` | no | 1 | indicator helper |
-| 3554 | `indict_RSI_SG_smooth_RSI` | no | 1 | indicator helper |
-| 3584 | `custom_crossover` | no | 2 | optimization helper |
-| 3596 | `indict_centered_average_deltas` | no | 1 | indicator helper |
-| 3621 | `rebuilt_signal_zeros` | no | 1 | signal helper |
-| 3783 | `get_row_score` | no | 1 | scoring helper |
-| 3791 | `get_gloabl_score` | no | 1 | scoring helper |
-| 3812 | `trade_predicted_dominant_cicles_peaks` | no | 4 | legacy/public candidate |
-| 3884 | `CDC_vs_detrended_correlation` | no | 1 | optimization/scoring |
-| 3960 | `CDC_vs_detrended_correlation_sum` | no | 1 | optimization/scoring |
-| 4040 | `trade_predicted_dominant_cicles_peaks_sum` | no | 1 | legacy/scoring |
-| 4102 | `genOpt_initializeIndividual` | no | 4 | optimization helper |
-| 4167 | `discretized_uniform` | no | 1 | optimization helper |
-| 4173 | `MultiAn_initializeIndividual` | no | 1 | optimization helper |
-| 4201 | `MultiAn_evaluateFitness` | yes | 2 | calculation/native bridge |
-| 4381 | `decode_individual` | no | 1 | optimization helper |
-| 4406 | `MultiAn_optimize_NLOPT` | no | 2 | optimization helper |
-| 4506 | `MultiAn_evaluateFitness_py` | no | 2 | calculation |
-| 4587 | `MultiAn_cyclesAlignKPI` | no | 1 | KPI calculation |
-| 4783 | `genOpt_evaluateMSEFitness` | no | 13 | optimization fitness |
-| 4915 | `genOpt_evaluateFitness` | no | 9 | optimization fitness |
-| 4990 | `genOpt_cycleParsGenOptimization` | yes | 1 | public/optimization |
-| 5503 | `save_dataframe` | no | 1 | I/O helper |
-| 5573 | `min_max_analysis` | no | 1 | feature extraction |
-| 5640 | `min_max_analysis_concatenated_dataframe` | no | 1 | public/semi-public |
-| 5824 | `get_min_max_analysis_df` | no | 2 | public |
-| 5997 | `get_most_updated_optimization_pars` | no | 1 | public |
-| 6107 | `detrend_lowess` | yes | 1 | calculation |
+Parameter/default details are tracked by the inspected signatures and guarded
+by `tests/test_api_parameter_contracts.py`; removed and mode-specific
+parameters are listed in `docs/parameter_matrix.md`.
+
+| Module | Line | Function | Current role | Main side effects |
+| --- | ---: | --- | --- | --- |
+| `analysis.py` | 25 | `analyze_and_plot` | public single-range calculation | logging, optional plotting |
+| `data.py` | 10 | `download_finance_data` | data loading | self data/state, file/network, logging |
+| `dates.py` | 10 | `find_next_valid_datetime` | datetime helper | none |
+| `dates.py` | 70 | `datetime_dateset_extend` | datetime helper | logging |
+| `detrending.py` | 12 | `hp_filter` | calculation helper | logging |
+| `detrending.py` | 119 | `jh_filter` | calculation helper | logging |
+| `detrending.py` | 160 | `linear_detrend` | calculation helper | none |
+| `detrending.py` | 195 | `detrend_lowess` | calculation helper | none |
+| `diagnostics.py` | 7 | `debug_check_complex_col` | debug helper | logging |
+| `diagnostics.py` | 33 | `debug_check_complex_values` | debug helper | none |
+| `diagnostics.py` | 39 | `get_goertzel_amplitudes` | diagnostic getter | none |
+| `extrema.py` | 10 | `trade_predicted_dominant_cicles_peaks` | legacy scoring helper | calls analysis |
+| `extrema.py` | 91 | `CDC_vs_detrended_correlation` | optimization/scoring helper | calls multirange analysis, logging |
+| `extrema.py` | 145 | `CDC_vs_detrended_correlation_sum` | optimization/scoring loop | logging |
+| `extrema.py` | 230 | `trade_predicted_dominant_cicles_peaks_sum` | legacy scoring loop | calls analysis |
+| `extrema.py` | 284 | `MultiAn_cyclesAlignKPI` | alignment KPI calculation | none |
+| `indicators.py` | 12 | `indict_MACD_SGMACD` | indicator helper | mutates/returns dataframe |
+| `indicators.py` | 72 | `indict_RSI_SG_smooth_RSI` | indicator helper | mutates/returns dataframe |
+| `indicators.py` | 117 | `indict_centered_average_deltas` | indicator helper | mutates/returns dataframe |
+| `minmax.py` | 13 | `min_max_analysis` | feature extraction | none |
+| `minmax.py` | 97 | `min_max_analysis_concatenated_dataframe` | public/semi-public feature workflow | calls multirange analysis |
+| `minmax.py` | 286 | `get_min_max_analysis_df` | public/semi-public CSV workflow | file I/O, logging |
+| `multiperiod.py` | 37 | `multiperiod_analysis` | public multirange calculation | self state, multiprocessing, logging, optional plotting |
+| `optimization.py` | 20 | `custom_crossover` | DEAP helper | mutates individuals |
+| `optimization.py` | 43 | `genOpt_initializeIndividual` | optimization helper | reads optimizer state |
+| `optimization.py` | 99 | `discretized_uniform` | optimization helper | random sampling |
+| `optimization.py` | 105 | `MultiAn_initializeIndividual` | optimization helper | random sampling |
+| `optimization.py` | 133 | `MultiAn_evaluateFitness` | fitness/native bridge | native fitness call |
+| `optimization.py` | 205 | `decode_individual` | optimization helper | none |
+| `optimization.py` | 230 | `MultiAn_optimize_NLOPT` | NLopt helper | logging |
+| `optimization.py` | 334 | `MultiAn_evaluateFitness_py` | Python fitness helper | logging |
+| `optimization.py` | 418 | `genOpt_evaluateMSEFitness` | optimizer fitness | logging, calls multirange analysis |
+| `optimization.py` | 539 | `genOpt_evaluateFitness` | optimizer fitness | logging, calls scoring helpers |
+| `optimization.py` | 619 | `genOpt_cycleParsGenOptimization` | public optimization workflow | self optimizer state, multiprocessing, file I/O, logging |
+| `persistence.py` | 13 | `save_dataframe` | I/O helper | CSV read/write |
+| `persistence.py` | 106 | `get_most_updated_optimization_pars` | I/O helper | CSV read, logging |
+| `plotting.py` | 20 | `plot_single_range_analysis_charts` | notebook plotting helper | Plotly display, logging |
+| `plotting.py` | 136 | `plot_multiperiod_analysis_charts` | notebook plotting helper | Plotly display, HTML output, logging |
+| `reconstruction.py` | 10 | `cicles_composite_signals` | signal reconstruction helper | none |
+| `reconstruction.py` | 62 | `rebuilt_signal_zeros` | signal helper | none |
+| `scoring.py` | 9 | `get_row_score` | scoring helper | none |
+| `scoring.py` | 15 | `get_gloabl_score` | scoring helper | none |
+| `spectral.py` | 9 | `get_bartels_score` | spectral helper | none |
+| `state.py` | 23 | `__init__` | public lifecycle/state initializer | data load, self state, logger |
+| `state.py` | 169 | `is_log_enabled` | logging helper | none |
+| `state.py` | 172 | `configure_logging` | logging helper | logger replacement |
+| `state.py` | 192 | `log_debug` | logging helper | structured logging |
+| `state.py` | 195 | `log_info` | logging helper | structured logging |
+| `state.py` | 198 | `log_warning` | logging helper | structured logging |
+| `state.py` | 201 | `log_error` | logging helper | structured logging |
+| `state.py` | 204 | `log_timing` | logging helper | structured logging |
 
 ## Immediate Observations
 
-- The module mixes public API, plotting, file I/O, optimization, native bridges, debug code, and report generation in one file.
-- There are only a few existing docstrings; most functions need structured documentation.
+- The original monolithic module has been split into core mixins, but the public class remains `cyPredict.cyPredict`.
+- Most core functions now have docstrings; exhaustive docstring cleanup remains Milestone 6.
 - Several return tuples contain placeholders or `None` values that should be documented before any contract change.
 - Long public signatures should be stabilized through config objects rather than repeated positional/keyword expansion.
-- Notebook compatibility matters because historical notebooks still call older parameters such as `CDC_bb_analysis`, `CDC_RSI_analysis`, `CDC_MACD_analysis`, and sometimes `time_zone`.
+- Notebook compatibility matters; removed legacy parameters are tracked in `docs/parameter_matrix.md` and guarded by tests.
 - Structured logging utilities are wired into the main analysis paths. Legacy `time_tracking` and `print_activity_remarks` flags are removed.
