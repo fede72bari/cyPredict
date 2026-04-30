@@ -405,7 +405,7 @@ class OptimizationMixin:
         opt.set_min_objective(loss)
         opt.set_maxeval(maxeval)
         
-        # Debug finale
+        # Validate final bounds before optimization.
         for i in range(len(x0)):
             assert isinstance(x0[i], float), f"x0[{i}] non è float puro!"
             assert lb[i] <= x0[i] <= ub[i], f"x0[{i}] fuori dai bounds!"

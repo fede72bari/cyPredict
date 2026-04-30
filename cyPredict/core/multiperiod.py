@@ -5,7 +5,6 @@ import random
 
 from deap import algorithms, base, creator, tools
 from hyperopt import atpe, fmin, hp, tpe
-from hyperopt.pyll import scope
 from IPython.display import display
 import numpy as np
 import pandas as pd
@@ -379,8 +378,8 @@ class MultiperiodMixin:
                             )
         
             
-            elaborated_data_series.append(elaborated_data) # pd.concat([elaborated_data_df, elaborated_data], ignore_index=True)
-            signals_results_series.append(signal_results) # pd.concat([signals_results_df, signal_results], ignore_index=True)
+            elaborated_data_series.append(elaborated_data)
+            signals_results_series.append(signal_results)
             configurations_series.append(configuration)
 
             if(len(elaborated_data) > max_length_series):
@@ -1136,7 +1135,7 @@ class MultiperiodMixin:
         composite_dominant_cycle_signal = []
 
         # Projection length follows the longest generated single-range output.
-        len_series = len(self.data) #len(self.MultiAn_reference_detrended_data)
+        len_series = len(self.data)
 
         # Use the longest single-range index as the composite signal index.
         self.log_debug(

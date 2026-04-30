@@ -563,6 +563,18 @@ Ridurre rumore e rischio senza cambiare procedure.
 
 Test golden invariati dopo ogni gruppo di rimozioni.
 
+### Stato aggiornato
+
+Milestone 7 chiusa per la prima passata sicura: rimossi import duplicati/non
+usati rimasti dal file monolitico `cyPredict/cypredict.py` e candidati non
+referenziati in `core/analysis.py` e `core/multiperiod.py`, rimossa la doppia
+assegnazione legacy `cyPredict.cyPredict = cyPredict`, eliminati commenti
+inline di vecchio codice in `core/analysis.py` e `core/multiperiod.py`, e
+rinominato un commento debug in `core/optimization.py` senza modificare i
+calcoli. Verifiche eseguite: controllo AST sugli import, compileall, test
+mirati import/native/docstring, suite completa standard e golden test QQQ EOD
+con `CYPREDICT_RUN_GOLDEN=1`.
+
 ## Milestone 8 - Modularizzazione senza cambiare calcoli
 
 ### Scopo

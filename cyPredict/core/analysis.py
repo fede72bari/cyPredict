@@ -1,21 +1,15 @@
 """Single-range dominant-cycle analysis workflow."""
 
-import math
 import sys
-import traceback
 
-from goertzel import goertzel_DFT, goertzel_general_shortened
+from goertzel import goertzel_DFT
 from IPython.display import display
 import numpy as np
 import pandas as pd
 from scipy.integrate import simpson
-from scipy.signal import argrelextrema, argrelmax, argrelmin, find_peaks, savgol_filter
-from scipy.signal.windows import kaiser, tukey
-from scipy.spatial.distance import cdist, euclidean
-from scipy.stats import kendalltau, pearsonr, spearmanr
-from sklearn.metrics import mean_squared_error
+from scipy.signal import argrelmax, argrelmin, savgol_filter
+from scipy.signal.windows import kaiser
 from sklearn.preprocessing import StandardScaler
-from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.tsatools import detrend
 
 
@@ -200,7 +194,7 @@ class AnalysisMixin:
         signals_results = pd.DataFrame()
 
         if(data is not None):
-            if(data.empty): # or self.state["data_state"] != 'initialized'):
+            if(data.empty):
                 self.log_error("Financial data not available", function="analyze_and_plot")
                 return None, None, None, None, None
 
@@ -209,7 +203,7 @@ class AnalysisMixin:
 
         else:
 
-            if(self.data.empty): # or self.state["data_state"] != 'initialized'):
+            if(self.data.empty):
                 self.log_error("Financial data not available", function="analyze_and_plot")
                 return None, None, None, None, None
 
@@ -516,10 +510,9 @@ class AnalysisMixin:
             for index in cut_peaks_indexes:
                 frequency = frequency_range[index]
                 cycle_length = 1 / frequency
-                divisor = 100 #16
-                max_segments = 30 # int(num_samples/divisor)
+                max_segments = 30
 
-                bartelsscore, _ = self.get_bartels_score(data, cycle_length, max_segments) #get_bartels_score(detrended_data, cycle_length, max_segments)
+                bartelsscore, _ = self.get_bartels_score(data, cycle_length, max_segments)
                 goertzel_df_peaks.loc[goertzel_df_peaks['peaks_indexes'] == index, 'bartel_score'] = bartelsscore
 
                 if(bartelsscore >= bartel_scoring_threshold):
@@ -712,12 +705,12 @@ class AnalysisMixin:
         dominant_peak_periods = 1 / frequency_range[dominant_peaks_indexes]
         dominant_peak_amplitudes = harmonics_amplitudes[dominant_peaks_indexes]
         dominant_scaled_peak_amplitudes = scaled_harmonics_amplitudes[dominant_peaks_indexes]
-        dominant_peak_phases = phases[dominant_peaks_indexes] # np.angle(transform[dominant_peaks_indexes])
+        dominant_peak_phases = phases[dominant_peaks_indexes]
         dominant_peak_next_min_offset = np.array(minoffset)[dominant_peaks_indexes]
         dominant_peak_next_max_offset = np.array(maxoffset)[dominant_peaks_indexes]
 
         dominant_peaks_global_score = []
-        for index in dominant_peaks_indexes: #goertzel_df_peaks[goertzel_df_peaks['peaks_indexes'] == dominant_peaks_indexes]['global_score']
+        for index in dominant_peaks_indexes:
             dominant_peaks_global_score.append(goertzel_df_peaks[goertzel_df_peaks['peaks_indexes'] == index]['global_score'].values[0])
 
         dominant_peaks = pd.DataFrame()
