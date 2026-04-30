@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
-from cyPredict.logging_utils import CyPredictLogger
+from ..logging_utils import CyPredictLogger
 
 
 class StateMixin:
