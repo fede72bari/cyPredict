@@ -60,6 +60,20 @@ loaded the old `.pyd` files:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_native.ps1 -InPlace
 ```
 
+Clean generated build folders with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\clean_native_build.ps1
+```
+
+The clean script removes only `native/*/build` folders by default. Add
+`-InPlaceExtensions` only when you intentionally want to remove generated
+in-place `.pyd` files as well:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\clean_native_build.ps1 -InPlaceExtensions
+```
+
 `cyPredict/cypredict.py` now prepends native `build/lib.*` folders first and
 then the `native/*` source folders to `sys.path` before importing the custom
 modules. `cyPredict/__init__.py` remains a compatibility re-export for legacy
@@ -68,3 +82,11 @@ the notebook working directory and without replacing a locked in-place module.
 
 `cyGAopt` and `cyGAoptMultiCore` expose `ABI_VERSION = 2`. Python import guards
 reject stale versions before the C++ GA branch can run.
+
+Smoke coverage lives in `tests/test_native_imports.py` and verifies:
+
+- native modules resolve from `native/*` or `native/*/build/lib.*`;
+- required entrypoints exist;
+- `goertzel_DFT` and `goertzel_general_shortened` execute on a synthetic sine;
+- `cyfitness.evaluate_fitness` returns a finite loss;
+- `cyGAoptMultiCore.evaluate_cycle_loss` returns a finite loss.

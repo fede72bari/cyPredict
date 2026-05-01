@@ -727,6 +727,20 @@ Rendere riproducibile build e import dei moduli C/C++.
 
 Un ambiente pulito deve poter costruire o installare le estensioni senza copiare manualmente file da cartelle di studio.
 
+### Stato aggiornato
+
+Milestone 9 chiusa: sorgenti native, setup e build script sono versionati sotto
+`native/`; `scripts/build_native.ps1` ricompila `goertzel`, `cyfitness`,
+`cyGAopt`, `cyGAoptMultiCore` e il modulo legacy `genetic_optimization` in
+ambiente `cyenv`; `scripts/clean_native_build.ps1` pulisce in modo vincolato i
+build artifact sotto `native/`. I test nativi ora non si limitano all'import:
+eseguono una chiamata minima Goertzel, una chiamata minima
+`cyfitness.evaluate_fitness` e una chiamata minima
+`cyGAoptMultiCore.evaluate_cycle_loss`. Verifiche eseguite: build native
+completa con MSVC 14.44 e Windows SDK 10.0.26100.0, parsing dello script clean,
+test nativi, suite completa standard e golden test QQQ EOD con
+`CYPREDICT_RUN_GOLDEN=1`.
+
 ## Milestone 10 - Worker periodici e GammaSignalForge
 
 ### Scopo
