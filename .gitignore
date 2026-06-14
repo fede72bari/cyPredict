@@ -16,6 +16,10 @@ pytest_tmp_*/
 runtime_test_outputs/
 
 # Native extension build products
+*.so
+*.pyd
+*.dll
+*.exe
 *.obj
 *.lib
 *.exp

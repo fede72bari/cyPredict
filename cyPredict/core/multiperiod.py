@@ -1,6 +1,7 @@
 """Multi-period cycle reconstruction workflow for cyPredict."""
 
 import multiprocessing
+import os
 import random
 
 from deap import algorithms, base, creator, tools
@@ -685,15 +686,21 @@ class MultiperiodMixin:
             toolbox.register("select", tools.selTournament, tournsize=3)
 
             if( enabled_multiprocessing == True):
-                
-                # Use spawn on Windows before registering pool.map.
-                if multiprocessing.get_start_method() != 'spawn':
-                    multiprocessing.set_start_method('spawn')
+
+                # Use an explicit local context. set_start_method() is global and
+                # breaks callers that already initialized multiprocessing.
+                mp_method = 'spawn' if os.name == 'nt' else 'fork'
+                mp_context = multiprocessing.get_context(mp_method)
 
                 cpu_count = multiprocessing.cpu_count()
-                self.log_debug("Multiprocessing pool configured", function="multiperiod_analysis", cpu_count=cpu_count)
+                self.log_debug(
+                    "Multiprocessing pool configured",
+                    function="multiperiod_analysis",
+                    cpu_count=cpu_count,
+                    context=mp_method,
+                )
 
-                pool = multiprocessing.Pool()
+                pool = mp_context.Pool()
                 toolbox.register("map", pool.map)
 
 

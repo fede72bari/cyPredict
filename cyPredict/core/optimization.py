@@ -3,6 +3,7 @@
 from datetime import datetime
 from decimal import Decimal
 import multiprocessing
+import os
 import random
 import traceback
 
@@ -1076,19 +1077,24 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             self.log_debug(
                 "Configuring multiprocessing for genOpt",
                 function="genOpt_cycleParsGenOptimization",
-                start_method=multiprocessing.get_start_method(),
+                start_method=multiprocessing.get_start_method(allow_none=True),
             )
 
-            # Use spawn on Windows before registering pool.map.
-            if multiprocessing.get_start_method() != 'spawn':
-                self.log_debug("Setting multiprocessing start method to spawn", function="genOpt_cycleParsGenOptimization")
-                multiprocessing.set_start_method('spawn')
+            # Use an explicit local context. set_start_method() is global and
+            # breaks callers that already initialized multiprocessing.
+            mp_method = 'spawn' if os.name == 'nt' else 'fork'
+            mp_context = multiprocessing.get_context(mp_method)
 
             cpu_count = multiprocessing.cpu_count()
-            self.log_debug("Multiprocessing pool configured", function="genOpt_cycleParsGenOptimization", cpu_count=cpu_count)
+            self.log_debug(
+                "Multiprocessing pool configured",
+                function="genOpt_cycleParsGenOptimization",
+                cpu_count=cpu_count,
+                context=mp_method,
+            )
 
             # Enable multiprocessing for fitness evaluation.
-            pool = multiprocessing.Pool()
+            pool = mp_context.Pool()
             toolbox.register("map", pool.map)
         
         else:
