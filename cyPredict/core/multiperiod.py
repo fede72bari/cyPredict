@@ -84,6 +84,9 @@ class MultiperiodMixin:
                              log_dir = None,
                              log_run_id = None,
                              random_seed = None,
+                             pars_from_opt_file = False,
+                             time_tracking = False,
+                             print_activity_remarks = False,
                             ):
         """Run multiple period ranges and refit the combined cycle signal.
 

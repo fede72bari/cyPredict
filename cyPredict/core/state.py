@@ -37,7 +37,9 @@ class StateMixin:
                  log_to_console=False,
                  log_to_file=False,
                  log_dir="logs",
-                 log_run_id=None):
+                 log_run_id=None,
+                 time_tracking=False,
+                 print_activity_remarks=False):
         """Create an analysis instance and immediately initialize market data.
 
         Parameters
