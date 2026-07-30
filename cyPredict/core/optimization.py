@@ -2,8 +2,8 @@
 
 from datetime import datetime
 from decimal import Decimal
-import multiprocessing
 import os
+import multiprocessing
 import random
 import traceback
 
@@ -175,6 +175,239 @@ class OptimizationMixin:
 
 
     
+
+    # ------------------------------------------------------------------
+    #   OTTIMIZZAZIONE ALGEBRICA (alternativa deterministica alle euristiche)
+    # ------------------------------------------------------------------
+
+    def MultiAn_frequency_bin_width(self, n_samples=None):
+        """Risoluzione spettrale della finestra di analisi: due frequenze piu' vicine di un bin
+        non sono distinguibili, quindi e' l'unita' naturale per misurare uno spostamento."""
+        if n_samples is None:
+            data = getattr(self, "MultiAn_reference_detrended_data", None)
+            n_samples = len(data) if data is not None else 0
+        return 1.0 / float(n_samples) if n_samples and n_samples > 1 else 0.0
+
+    def MultiAn_scale_composite(self, composite, reference, method="lsq", window_bars=None):
+        """Riporta il composite nelle unita' del segnale di riferimento.
+
+        "lsq"    regressione a + b*composite: e' la scala che MINIMIZZA l'errore quadratico.
+        "minmax" allinea minimo e massimo: e' dominata dagli estremi della finestra e puo'
+                 peggiorare molto l'errore anche quando la forma della curva e' corretta.
+        """
+        import numpy as np
+
+        comp = np.asarray(composite, dtype=float)
+        ref = np.asarray(reference, dtype=float)
+        m = min(len(comp), len(ref))
+        if m < 3:
+            return comp
+        if window_bars:
+            m = min(m, int(window_bars) + 1)
+        c_tail, r_tail = comp[-m:], ref[-m:]
+        finite = np.isfinite(c_tail) & np.isfinite(r_tail)
+        if finite.sum() < 3 or np.std(c_tail[finite]) <= 0:
+            return comp
+        if str(method).lower() == "minmax":
+            lo, hi = float(np.nanmin(c_tail)), float(np.nanmax(c_tail))
+            if hi == lo:
+                return comp
+            r_lo, r_hi = float(np.nanmin(r_tail)), float(np.nanmax(r_tail))
+            return (comp - lo) / (hi - lo) * (r_hi - r_lo) + r_lo
+        design = np.column_stack([c_tail[finite], np.ones(int(finite.sum()))])
+        coef, _res, _rank, _sv = np.linalg.lstsq(design, r_tail[finite], rcond=None)
+        return comp * float(coef[0]) + float(coef[1])
+
+    def MultiAn_fit_fidelity(self, composite, reference, window_bars=None, scale_method="lsq"):
+        """Fedelta' del ricostruito rispetto al riferimento sulla finestra di ottimizzazione.
+
+        Restituisce correlazione e NMSE (errore quadratico normalizzato sulla varianza del
+        riferimento: sopra 1 significa peggio di una linea piatta). La scala usata e' quella
+        indicata: misurare la fedelta' dopo una riscalatura non ottimale confonde un errore di
+        SCALA con un errore di FORMA.
+        """
+        import numpy as np
+
+        comp = np.asarray(composite, dtype=float)
+        ref = np.asarray(reference, dtype=float)
+        m = min(len(comp), len(ref))
+        if window_bars:
+            m = min(m, int(window_bars) + 1)
+        if m < 8:
+            return {"corr": None, "nmse": None, "window_bars": int(m)}
+        c_tail, r_tail = comp[-m:], ref[-m:]
+        if not (np.isfinite(c_tail).all() and np.isfinite(r_tail).all()):
+            return {"corr": None, "nmse": None, "window_bars": int(m)}
+        if np.std(c_tail) <= 0 or np.var(r_tail) <= 0:
+            return {"corr": None, "nmse": None, "window_bars": int(m)}
+        scaled = self.MultiAn_scale_composite(c_tail, r_tail, method=scale_method)
+        return {"corr": round(float(np.corrcoef(scaled, r_tail)[0, 1]), 4),
+                "nmse": round(float(np.mean((scaled - r_tail) ** 2) / np.var(r_tail)), 4),
+                "window_bars": int(m - 1),
+                "scale_method": str(scale_method).lower()}
+
+    def _MultiAn_design_matrix(self, freqs, origins, periods, n_samples):
+        """Matrice di progetto sin/cos con la finestra attiva di ogni componente.
+
+        a*sin(w(t-o) + phi) = A*sin(w(t-o)) + B*cos(w(t-o)): con le frequenze fissate il modello
+        e' LINEARE in A,B. Ogni componente contribuisce solo dentro la propria finestra, con la
+        stessa regola period-related usata dal GA, e la fase e' riferita allo stesso time-origin.
+        """
+        import numpy as np
+
+        t = np.arange(n_samples, dtype=float)
+        columns, used = [], []
+        span_mult = float(getattr(self, "period_related_rebuild_multiplier", 0) or 0)
+        period_related = bool(getattr(self, "period_related_rebuild_range", False))
+        for i, f in enumerate(freqs):
+            if not np.isfinite(f) or f <= 0:
+                continue
+            origin = max(0.0, float(origins[i]))
+            mask = t >= origin
+            if period_related and span_mult > 0 and np.isfinite(periods[i]):
+                lo = max(origin, n_samples - 1 - np.ceil(periods[i] * span_mult))
+                mask = mask & (t >= lo)
+            if int(mask.sum()) < 6:
+                continue
+            theta = 2.0 * np.pi * float(f) * (t - origin)
+            columns.append(np.where(mask, np.sin(theta), 0.0))
+            columns.append(np.where(mask, np.cos(theta), 0.0))
+            used.append(i)
+        if not columns:
+            return None, None
+        columns.append(np.ones(n_samples))
+        return np.column_stack(columns), used
+
+    def _MultiAn_solve_linear(self, freqs, origins, periods, target):
+        """Risolve il problema lineare e restituisce (fitted, ampiezze, fasi, indici usati)."""
+        import numpy as np
+
+        design, used = self._MultiAn_design_matrix(freqs, origins, periods, len(target))
+        if design is None:
+            return None, None, None, None
+        beta, _res, _rank, _sv = np.linalg.lstsq(design, target, rcond=None)
+        fitted = design @ beta
+        amps = np.zeros(len(freqs))
+        phases = np.zeros(len(freqs))
+        for k, i in enumerate(used):
+            A = float(beta[2 * k])
+            B = float(beta[2 * k + 1])
+            amps[i] = float(np.hypot(A, B))          # a = sqrt(A^2 + B^2)
+            phases[i] = float(np.arctan2(B, A))      # phi = atan2(B, A)
+        return fitted, amps, phases, used
+
+    def _MultiAn_fit_inputs(self):
+        """Estrae dal dataframe dei cicli dominanti frequenze, origini, periodi e target."""
+        import numpy as np
+        import pandas as pd
+
+        df = self.MultiAn_dominant_cycles_df
+        if df is None or len(df) == 0:
+            raise ValueError("MultiAn_dominant_cycles_df vuoto: nessun ciclo da ottimizzare")
+        target = np.asarray(self.MultiAn_reference_detrended_data, dtype=float)
+        if target.ndim > 1:
+            target = target.ravel()
+        freqs = pd.to_numeric(df.get("peak_frequencies"), errors="coerce").to_numpy(dtype=float)
+        origins = pd.to_numeric(df.get("start_rebuilt_signal_index"), errors="coerce").fillna(0).to_numpy(dtype=float)
+        periods = pd.to_numeric(df.get("peak_periods"), errors="coerce").to_numpy(dtype=float)
+        return df, target, freqs, origins, periods
+
+    def MultiAn_fit_algebraic(self, return_details=False):
+        """Ampiezze e fasi OTTIMALI in forma chiusa, senza ricerca euristica.
+
+        Il problema "date le frequenze, trova ampiezze e fasi che minimizzano l'errore quadratico"
+        e' lineare nei coefficienti sin/cos: l'errore e' un paraboloide convesso, il minimo e'
+        unico e si ottiene dalle equazioni normali. Nessun seed, nessuna griglia di
+        discretizzazione, nessuna variabilita' fra esecuzioni. Le fasi vengono ottimizzate anche
+        quando phases_ft e' False (il GA in quel caso le lascia ferme).
+
+        Restituisce la fitness (MSE) e aggiorna MultiAn_dominant_cycles_df.
+        """
+        import numpy as np
+
+        df, target, freqs, origins, periods = self._MultiAn_fit_inputs()
+        fitted, amps, phases, used = self._MultiAn_solve_linear(freqs, origins, periods, target)
+        if fitted is None:
+            raise ValueError("Nessuna componente utilizzabile per il fit algebrico")
+        fitness = float(np.mean((fitted - target) ** 2))
+        self._MultiAn_store_fit(df, freqs, amps, phases, fitness)
+        self.log_debug("Algebraic fit completed", function="MultiAn_fit_algebraic",
+                       components=len(used), fitness=fitness)
+        if return_details:
+            return fitness, {"fitted": fitted, "amplitudes": amps, "phases": phases,
+                             "frequencies": freqs, "components": used}
+        return fitness
+
+    def MultiAn_fit_varpro(self, freq_bound_bins=0.5, freq_bounds_pct=None, max_nfev=200,
+                           return_details=False):
+        """Trimming in frequenza con VARIABLE PROJECTION.
+
+        Le ampiezze e le fasi sono funzione esatta delle frequenze (problema lineare), quindi si
+        eliminano analiticamente: il residuo dipende SOLO dalle frequenze e la ricerca avviene in
+        n dimensioni invece di 3n. Il minimo locale si raggiunge con least_squares partendo dai
+        picchi della trasformata, entro +-freq_bounds_pct (gli stessi limiti del GA).
+
+        Molto piu' rapido ed economico di una ricerca euristica sull'intero spazio.
+        """
+        import numpy as np
+
+        df, target, freqs, origins, periods = self._MultiAn_fit_inputs()
+        valid = np.isfinite(freqs) & (freqs > 0)
+        if not valid.any():
+            raise ValueError("Nessuna frequenza valida per il VARPRO")
+        f0 = freqs[valid].astype(float)
+        if freq_bounds_pct is not None:
+            # modalita' storica: intorno espresso in percentuale della frequenza
+            half = f0 * float(freq_bounds_pct)
+        else:
+            # il picco vero cade fra due bin: l'affinamento sensato e' una frazione di bin,
+            # non una percentuale fissa (la stessa percentuale vale mezzo bin su una finestra
+            # corta e diversi bin su una lunga).
+            half = np.full_like(f0, float(freq_bound_bins) * self.MultiAn_frequency_bin_width())
+        lo = np.maximum(f0 - half, 1e-9)
+        hi = f0 + half
+
+        def residual(x):
+            trial = freqs.copy()
+            trial[valid] = x
+            fitted, _a, _p, _u = self._MultiAn_solve_linear(trial, origins, periods, target)
+            if fitted is None:
+                return np.full(len(target), 1e6)
+            return fitted - target
+
+        try:
+            from scipy.optimize import least_squares
+            sol = least_squares(residual, f0, bounds=(lo, hi), max_nfev=int(max_nfev))
+            best = sol.x
+        except Exception as exc:                      # nessuna scipy o fallimento: resta l'algebrico
+            self.log_debug("VARPRO unavailable, falling back to the algebraic fit",
+                           function="MultiAn_fit_varpro", error=str(exc)[:120])
+            best = f0
+
+        tuned = freqs.copy()
+        tuned[valid] = best
+        fitted, amps, phases, used = self._MultiAn_solve_linear(tuned, origins, periods, target)
+        if fitted is None:
+            raise ValueError("VARPRO: nessuna componente utilizzabile")
+        fitness = float(np.mean((fitted - target) ** 2))
+        self._MultiAn_store_fit(df, tuned, amps, phases, fitness)
+        self.log_debug("VARPRO fit completed", function="MultiAn_fit_varpro",
+                       components=len(used), fitness=fitness)
+        if return_details:
+            return fitness, {"fitted": fitted, "amplitudes": amps, "phases": phases,
+                             "frequencies": tuned, "components": used}
+        return fitness
+
+    def _MultiAn_store_fit(self, df, freqs, amps, phases, fitness):
+        """Scrive i risultati con le stesse colonne prodotte dal GA."""
+        df["best_amplitudes"] = amps
+        df["best_phases"] = phases
+        df["phase"] = phases
+        df["best_frequencies"] = freqs
+        df["frequency"] = freqs
+        df["best_fitness"] = fitness
+        self.MultiAn_dominant_cycles_df = df
+
     def MultiAn_evaluateFitness(self, individual, return_list_type=True):
         """
         Se 'individual' contiene ampiezze (ed eventualmente frequenze e fasi),
@@ -1077,21 +1310,16 @@ period_related_rebuild_multiplier: only if period_related_rebuild_range == "True
             self.log_debug(
                 "Configuring multiprocessing for genOpt",
                 function="genOpt_cycleParsGenOptimization",
-                start_method=multiprocessing.get_start_method(allow_none=True),
+                start_method=multiprocessing.get_start_method(),
             )
 
             # Use an explicit local context. set_start_method() is global and
-            # breaks callers that already initialized multiprocessing.
+            # raises on Linux once multiprocessing has been initialized.
             mp_method = 'spawn' if os.name == 'nt' else 'fork'
             mp_context = multiprocessing.get_context(mp_method)
 
             cpu_count = multiprocessing.cpu_count()
-            self.log_debug(
-                "Multiprocessing pool configured",
-                function="genOpt_cycleParsGenOptimization",
-                cpu_count=cpu_count,
-                context=mp_method,
-            )
+            self.log_debug("Multiprocessing pool configured", function="genOpt_cycleParsGenOptimization", cpu_count=cpu_count, start_method=mp_method)
 
             # Enable multiprocessing for fitness evaluation.
             pool = mp_context.Pool()

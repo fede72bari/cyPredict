@@ -328,10 +328,28 @@ class MultiperiodMixin:
 
             
             hp_filter_lambda = 1600 # not null default value
-            
+            hp_filter_lambda_min = None
+
             if(detrend_type == 'hp_filter'):
                 hp_filter_lambda = row['hp_filter_lambda']
-                
+
+            if(detrend_type == 'band_pass'):
+                hp_filter_lambda = row['hp_filter_lambda']
+                # Telescopic band-pass lambda_min, auto-derived from the bands themselves:
+                # use the lambda of the adjacent shorter-period band (whose max_period
+                # equals this band's min_period). For the fastest band (no shorter
+                # neighbour) derive lambda_min from the HP half-power cutoff at
+                # min_period. An explicit 'hp_filter_lambda_min' column overrides.
+                if ('hp_filter_lambda_min' in row.index and row['hp_filter_lambda_min'] is not None
+                        and row['hp_filter_lambda_min'] > 0):
+                    hp_filter_lambda_min = row['hp_filter_lambda_min']
+                else:
+                    prev_band = periods_pars[periods_pars['max_period'] == min_period]
+                    if len(prev_band) > 0:
+                        hp_filter_lambda_min = float(prev_band.iloc[0]['hp_filter_lambda'])
+                    else:
+                        hp_filter_lambda_min = 1.0 / (16.0 * (np.sin(np.pi / max(2, int(min_period))) ** 4))
+
             if(detrend_type == 'lowess' and row.get('lowess_k') is not None and row['lowess_k'] is not None):
                 lowess_k = row['lowess_k']
             else:
@@ -369,6 +387,7 @@ class MultiperiodMixin:
                              detrend_window = int(max_period*linear_filter_window_size_multiplier),
                              bartel_scoring_threshold = 0,
                              hp_filter_lambda = hp_filter_lambda,
+                             hp_filter_lambda_min = hp_filter_lambda_min,
                              jp_filter_p = 3,
                              jp_filter_h = 100,
                              bartel_peaks_filtering = True,

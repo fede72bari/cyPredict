@@ -47,6 +47,7 @@ class AnalysisMixin:
                          bartel_peaks_filtering = True,
                          bartel_scoring_threshold = 0.5,
                          hp_filter_lambda = 100,
+                         hp_filter_lambda_min = None,
                          jp_filter_p = 4,
                          jp_filter_h = 8,
                          cut_to_date_before_detrending = True,
@@ -379,6 +380,20 @@ class AnalysisMixin:
         if(detrend_type == 'hp_filter'):
             self.log_debug("HP filter detrend selected", function="analyze_and_plot", hp_filter_lambda=hp_filter_lambda)
             detrended_data, _ = self.hp_filter(detrending_data, hp_filter_lambda)
+
+
+        if(detrend_type == 'band_pass'):
+            # Telescopic band-pass detrend: HP(lambda) high-pass minus HP(lambda_min)
+            # high-pass. lambda sets the SLOW cutoff (removes trend/periods slower than
+            # ~P_high), lambda_min sets the FAST cutoff (removes periods faster than
+            # ~P_low). The difference keeps the band (P_low, P_high) instead of only
+            # high-passing, so the extracted signal is band-limited to the target range.
+            self.log_debug("Band-pass detrend selected", function="analyze_and_plot",
+                           hp_filter_lambda=hp_filter_lambda, hp_filter_lambda_min=hp_filter_lambda_min)
+            detrended_data, _ = self.hp_filter(detrending_data, hp_filter_lambda)
+            if hp_filter_lambda_min is not None and hp_filter_lambda_min > 0:
+                hp_fast, _ = self.hp_filter(detrending_data, hp_filter_lambda_min)
+                detrended_data = detrended_data - hp_fast
 
 
         if(detrend_type == 'jh_filter'):
