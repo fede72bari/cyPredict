@@ -72,6 +72,7 @@ class MultiperiodMixin:
                              phases_ft = True,
                              cut_to_date_before_detrending = True,
                              detrend_type = 'hp_filter',
+                             filter_band_type = 'high_pass',
                              lowess_k = 3,
                              linear_filter_window_size_multiplier = 1,
                              period_related_rebuild_range = False,
@@ -261,8 +262,20 @@ class MultiperiodMixin:
         configurations_series = []
         goertzel_amplitudes = []
         
-        if(detrend_type != 'linear' and detrend_type != 'lowess'):
+        # Forma vecchia: detrend_type='band_pass' -> coppia (famiglia hp_filter, modo band_pass).
+        # Prima qualsiasi valore diverso da 'linear'/'lowess' veniva riscritto in 'hp_filter':
+        # 'band_pass' non arrivava mai ad analyze_and_plot, dove e' implementato, e il passa-banda
+        # risultava inefficace pur essendo richiesto.
+        if(detrend_type == 'band_pass'):
             detrend_type = 'hp_filter'
+            filter_band_type = 'band_pass'
+        # Si normalizza solo cio' che non e' implementato in analyze_and_plot.
+        _implemented_detrends = ('linear', 'lowess', 'hp_filter', 'jh_filter', 'quadratic')
+        if(detrend_type not in _implemented_detrends):
+            detrend_type = 'hp_filter'
+        if(filter_band_type not in ('high_pass', 'band_pass')):
+            filter_band_type = 'high_pass'
+        self.filter_band_type = filter_band_type
 
 
         self.log_debug(
@@ -326,6 +339,13 @@ class MultiperiodMixin:
             else:
                 detrend_type = 'hp_filter'
 
+            # il modo (passa-alto / passa-banda) puo' essere deciso banda per banda
+            if('filter_band_type' in row.index and row['filter_band_type'] is not None):
+                filter_band_type = row['filter_band_type']
+            if(detrend_type == 'band_pass'):
+                detrend_type = 'hp_filter'
+                filter_band_type = 'band_pass'
+
             
             hp_filter_lambda = 1600 # not null default value
             hp_filter_lambda_min = None
@@ -333,7 +353,7 @@ class MultiperiodMixin:
             if(detrend_type == 'hp_filter'):
                 hp_filter_lambda = row['hp_filter_lambda']
 
-            if(detrend_type == 'band_pass'):
+            if(filter_band_type == 'band_pass'):
                 hp_filter_lambda = row['hp_filter_lambda']
                 # Telescopic band-pass lambda_min, auto-derived from the bands themselves:
                 # use the lambda of the adjacent shorter-period band (whose max_period
@@ -383,6 +403,7 @@ class MultiperiodMixin:
                              min_period = min_period,
                              max_period = max_period,
                              detrend_type = detrend_type,
+                             filter_band_type = filter_band_type,
                              lowess_k = lowess_k,
                              detrend_window = int(max_period*linear_filter_window_size_multiplier),
                              bartel_scoring_threshold = 0,
@@ -419,7 +440,7 @@ class MultiperiodMixin:
 
         # Select the reference detrended series for optimizer fitness.
         if(reference_detrended_data == "less_detrended"):
-            if(detrend_type == 'hp_filter'):
+            if(detrend_type == 'hp_filter' or detrend_type == 'band_pass'):
                 index_detrended_data = max(range(len(configurations_series)), key=lambda i: configurations_series[i]['hp_filter_lambda'])
             if(detrend_type == 'lowess'):
                 index_detrended_data = max(range(len(configurations_series)), key=lambda i: (configurations_series[i]['lowess_k'] * configurations_series[i]['max_period']))
@@ -428,6 +449,14 @@ class MultiperiodMixin:
         if(reference_detrended_data == "longest"):
             index_detrended_data = max(range(len(configurations_series)), key=lambda i: configurations_series[i]['num_samples'])
             
+        # rete di sicurezza: qualunque detrend senza criterio esplicito ricade sulla serie piu'
+        # lunga, invece di lasciare la variabile non assegnata (UnboundLocalError)
+        try:
+            index_detrended_data
+        except NameError:
+            index_detrended_data = max(range(len(configurations_series)),
+                                       key=lambda i: configurations_series[i]['num_samples'])
+
         self.log_debug(
             "Selected reference detrended series",
             function="multiperiod_analysis",
@@ -547,7 +576,28 @@ class MultiperiodMixin:
         # -------------------------------------------------------------------
         # Amplitude-only sweep, processing slower cycles first
         # -------------------------------------------------------------------
-        if(opt_algo_type == 'mono_frequency'):
+        # -------------------------------------------------------------------
+        # Fit algebrico del composite globale: alternativa deterministica al genetico.
+        # Ampiezze e fasi si ricavano in forma chiusa (le frequenze sono fissate dalla
+        # trasformata), quindi non serve nessuna ricerca; "varpro" affina anche le frequenze
+        # eliminando analiticamente le ampiezze. Il genetico globale e' il collo di bottiglia
+        # dell'intera analisi, e qui viene semplicemente saltato.
+        # -------------------------------------------------------------------
+        if(opt_algo_type in ('algebraic', 'varpro')):
+
+            if(getattr(self, 'print_activity_remarks', False)):
+                print('\nGlobal fit: %s (closed form, no genetic search)' % opt_algo_type)
+
+            if(opt_algo_type == 'varpro'):
+                best_fitness_value = self.MultiAn_fit_varpro()
+            else:
+                best_fitness_value = self.MultiAn_fit_algebraic()
+
+            amplitudes = self.MultiAn_dominant_cycles_df['best_amplitudes'].tolist()
+            self.log_debug("Global algebraic fit completed", function="multiperiod_analysis",
+                           algo=opt_algo_type, fitness=best_fitness_value)
+
+        elif(opt_algo_type == 'mono_frequency'):
             
             scaler = self.scaler
 

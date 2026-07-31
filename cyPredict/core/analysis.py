@@ -43,6 +43,7 @@ class AnalysisMixin:
                          min_period = 20,
                          max_period = 100,
                          detrend_type = 'none',
+                         filter_band_type = 'high_pass',
                          detrend_window = 0,
                          bartel_peaks_filtering = True,
                          bartel_scoring_threshold = 0.5,
@@ -52,6 +53,7 @@ class AnalysisMixin:
                          jp_filter_h = 8,
                          cut_to_date_before_detrending = True,
                          lowess_k = 3,
+                         lowess_k_min = None,
                          windowing = None,
                          kaiser_beta = 5,
                          centered_averages = True,
@@ -178,6 +180,7 @@ class AnalysisMixin:
           "min_period": min_period,
           "max_period": max_period,
           "detrend_type": detrend_type,
+          "filter_band_type": filter_band_type,
           "detrend_window": detrend_window,
           "bartel_peaks_filtering": bartel_peaks_filtering,
           "bartel_scoring_threshold": bartel_scoring_threshold,
@@ -362,6 +365,13 @@ class AnalysisMixin:
 
         
         # Select the detrending branch without altering the transform path.
+        # Forma vecchia: detrend_type='band_pass'. La banda non e' una famiglia di filtro, e' un
+        # modo di usarla (si toglie anche la parte piu' veloce), quindi si traduce nella coppia
+        # (famiglia = hp_filter, modo = band_pass). Il comportamento resta identico.
+        if(detrend_type == 'band_pass'):
+            detrend_type = 'hp_filter'
+            filter_band_type = 'band_pass'
+
         if(detrend_type == 'linear'):
             self.log_debug(
                 "Linear detrend selected",
@@ -382,18 +392,8 @@ class AnalysisMixin:
             detrended_data, _ = self.hp_filter(detrending_data, hp_filter_lambda)
 
 
-        if(detrend_type == 'band_pass'):
-            # Telescopic band-pass detrend: HP(lambda) high-pass minus HP(lambda_min)
-            # high-pass. lambda sets the SLOW cutoff (removes trend/periods slower than
-            # ~P_high), lambda_min sets the FAST cutoff (removes periods faster than
-            # ~P_low). The difference keeps the band (P_low, P_high) instead of only
-            # high-passing, so the extracted signal is band-limited to the target range.
-            self.log_debug("Band-pass detrend selected", function="analyze_and_plot",
-                           hp_filter_lambda=hp_filter_lambda, hp_filter_lambda_min=hp_filter_lambda_min)
-            detrended_data, _ = self.hp_filter(detrending_data, hp_filter_lambda)
-            if hp_filter_lambda_min is not None and hp_filter_lambda_min > 0:
-                hp_fast, _ = self.hp_filter(detrending_data, hp_filter_lambda_min)
-                detrended_data = detrended_data - hp_fast
+        # (il modo passa-banda e' applicato in fondo alla catena, dopo che la famiglia scelta ha
+        # prodotto la serie detrendata: vale per QUALSIASI famiglia, non solo per l'HP)
 
 
         if(detrend_type == 'jh_filter'):
@@ -406,6 +406,28 @@ class AnalysisMixin:
             _, detrended_data = self.detrend_lowess(detrending_data, max_period, k=4)
             
         
+        # ------------------------------------------------------
+        # MODO PASSA-BANDA: alla serie prodotta dalla famiglia scelta si sottrae la componente
+        # piu' VELOCE calcolata con LA STESSA famiglia. Quel che resta e' la banda
+        # (min_period, max_period) invece del solo passa-alto. Il taglio lento e' gia' dato dal
+        # parametro principale della famiglia, quello veloce dal parametro "_min".
+        # ------------------------------------------------------
+        if(filter_band_type == 'band_pass'):
+            fast_component = None
+            if(detrend_type == 'hp_filter' and hp_filter_lambda_min is not None and hp_filter_lambda_min > 0):
+                fast_component, _ = self.hp_filter(detrending_data, hp_filter_lambda_min)
+            elif(detrend_type == 'lowess' and lowess_k_min is not None and lowess_k_min > 0):
+                _, fast_component = self.detrend_lowess(detrending_data, max_period, k=lowess_k_min)
+
+            if(fast_component is not None):
+                self.log_debug("Band-pass mode: fast component subtracted",
+                               function="analyze_and_plot", detrend_type=detrend_type)
+                detrended_data = detrended_data - fast_component
+            else:
+                self.log_debug("Band-pass mode requested but this filter family has no fast cutoff "
+                               "configured: high-pass kept", function="analyze_and_plot",
+                               detrend_type=detrend_type)
+
         if original_data[data_column_name].isnull().all():
             raise ValueError(f"All values in '{data_column_name}' are NaN — detrending aborted.")
 
