@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.4.0] - 2026-08-02
+
+### Added
+- **Famiglia di filtro Christiano-Fitzgerald (`cf_filter`).** Filtro asimmetrico che estrae
+  direttamente la banda di periodi richiesta, senza lambda: i parametri sono i periodi stessi.
+  In modo `band_pass` gli estremi sono quelli della banda (`min_period`, `max_period`); in modo
+  `high_pass` si tiene tutto cio' che e' piu' veloce del taglio, cioe' i periodi da 2 al periodo
+  massimo. E' la famiglia oggi in produzione su tutti i simboli.
+
+### Fixed
+- **Il modo passa-alto di CF era rovesciato: teneva il lento invece del veloce.** Si passava
+  `low = periodo minimo` e `high = lunghezza della serie`, che conserva le oscillazioni PIU'
+  LENTE del taglio - cioe' un passa-basso. Misurato su /ES 1d (1944 barre), quota di energia con
+  periodo inferiore alle 128 barre nella serie detrendata: **1,5% prima, 97,9% dopo**. Il difetto
+  era latente perche' la produzione gira in passa-banda e questo ramo non veniva mai eseguito.
+- **Doppia sottrazione della componente veloce in modo passa-banda.** Il taglio veloce di fine
+  catena vale per le famiglie che producono un passa-alto; CF estrae la banda per costruzione,
+  quindi sottrarre di nuovo il veloce toglieva due volte la stessa cosa. Le famiglie che gia'
+  contengono il modo sono ora escluse da quel passaggio.
+- **Serie di riferimento del fit globale non definita per CF.** Il criterio di `less_detrended`
+  copriva solo `hp_filter` e `lowess`: con CF si finiva nella rete di sicurezza, che sceglie la
+  banda con PIU' CAMPIONI - una banda diversa da quella con cui viene costruita la struttura
+  globale. Sui simboli a storia corta le due scelte divergono e il fit falliva con
+  `Length of values (3736) does not match length of index (3480)`: 145 ancore tentate, 0 salvate
+  su tutti e sette i future. Con CF il lambda non esiste e l'equivalente semantico della banda
+  "meno detrendata" e' quella con il PERIODO MASSIMO piu' grande. Prova: NQ, ultima ancora,
+  1944 barre, prima eccezione e ora 68 cicli; le tabelle dei run dei future riportano 145 ancore
+  su 145 completate.
+
 ## [0.3.0] - 2026-07-31
 
 ### Fixed

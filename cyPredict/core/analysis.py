@@ -396,6 +396,28 @@ class AnalysisMixin:
         # prodotto la serie detrendata: vale per QUALSIASI famiglia, non solo per l'HP)
 
 
+        if(detrend_type == 'cf_filter'):
+            # Christiano-Fitzgerald: filtro asimmetrico che estrae direttamente la banda
+            # (min_period, max_period). Non usa lambda: i periodi sono il parametro. In modo
+            # 'high_pass' si tiene tutto cio' che e' piu' veloce di min_period, alzando il bordo
+            # lento a un valore molto grande.
+            from statsmodels.tsa.filters.cf_filter import cffilter
+
+            # CF tiene i periodi fra 'low' e 'high'. In modo passa-banda i due estremi sono
+            # quelli della banda; in modo passa-alto si tiene tutto cio' che e' PIU' VELOCE del
+            # taglio, quindi da 2 fino al periodo massimo - non il contrario.
+            if(filter_band_type == 'band_pass' and max_period):
+                _lo = float(min_period if min_period and min_period > 2 else 2)
+                _hi = float(max_period)
+            else:
+                _lo = 2.0
+                _hi = float(max_period if max_period else max(len(detrending_data) - 1, 8))
+            self.log_debug("Christiano-Fitzgerald detrend selected", function="analyze_and_plot",
+                           low=_lo, high=_hi, filter_band_type=filter_band_type)
+            _cycle, _trend = cffilter(detrending_data, low=_lo, high=_hi, drift=False)
+            detrended_data = _cycle
+
+
         if(detrend_type == 'jh_filter'):
             self.log_debug("JH filter detrend selected", function="analyze_and_plot", jp_filter_p=jp_filter_p, jp_filter_h=jp_filter_h)
             detrended_data = self.jh_filter(detrending_data, jp_filter_p, jp_filter_h)
@@ -412,7 +434,10 @@ class AnalysisMixin:
         # (min_period, max_period) invece del solo passa-alto. Il taglio lento e' gia' dato dal
         # parametro principale della famiglia, quello veloce dal parametro "_min".
         # ------------------------------------------------------
-        if(filter_band_type == 'band_pass'):
+        # Alcune famiglie estraggono la banda per costruzione (il modo e' gia' dentro il filtro):
+        # per quelle non si sottrae nessuna componente veloce, si toglierebbe due volte.
+        _self_banded = ('cf_filter',)
+        if(filter_band_type == 'band_pass' and detrend_type not in _self_banded):
             fast_component = None
             if(detrend_type == 'hp_filter' and hp_filter_lambda_min is not None and hp_filter_lambda_min > 0):
                 fast_component, _ = self.hp_filter(detrending_data, hp_filter_lambda_min)

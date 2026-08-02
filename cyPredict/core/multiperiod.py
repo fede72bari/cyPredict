@@ -270,7 +270,7 @@ class MultiperiodMixin:
             detrend_type = 'hp_filter'
             filter_band_type = 'band_pass'
         # Si normalizza solo cio' che non e' implementato in analyze_and_plot.
-        _implemented_detrends = ('linear', 'lowess', 'hp_filter', 'jh_filter', 'quadratic')
+        _implemented_detrends = ('linear', 'lowess', 'hp_filter', 'jh_filter', 'quadratic', 'cf_filter')
         if(detrend_type not in _implemented_detrends):
             detrend_type = 'hp_filter'
         if(filter_band_type not in ('high_pass', 'band_pass')):
@@ -440,6 +440,11 @@ class MultiperiodMixin:
 
         # Select the reference detrended series for optimizer fitness.
         if(reference_detrended_data == "less_detrended"):
+            if(detrend_type == 'cf_filter'):
+                # CF non usa lambda: la banda "meno detrendata" e' quella che arriva ai periodi
+                # piu' lunghi, cioe' l'equivalente semantico del lambda piu' grande dell'HP.
+                index_detrended_data = max(range(len(configurations_series)),
+                                           key=lambda i: configurations_series[i]['max_period'])
             if(detrend_type == 'hp_filter' or detrend_type == 'band_pass'):
                 index_detrended_data = max(range(len(configurations_series)), key=lambda i: configurations_series[i]['hp_filter_lambda'])
             if(detrend_type == 'lowess'):
